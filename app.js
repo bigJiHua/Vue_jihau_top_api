@@ -13,7 +13,7 @@ const session= require('express-session')
 webapp.use(cors())
 webapp.use(express.urlencoded({ extended: false }))
 webapp.use((req, res, next) => {
-    res.cc = function (err, status = 1) {
+    res.cc = function (err, status = 401) {
         res.send({
             status,
             message: err instanceof Error ? err.message : err,
@@ -25,8 +25,8 @@ webapp.use((req, res, next) => {
 // 配置解析token中间件
 const config = require('./config')
 webapp.use(
-    expressJWT({ 
-        secret: config.jwtSecretKey, 
+    expressJWT({
+        secret: config.jwtSecretKey,
         algorithms: ['HS256'],
         //credentialsRequired: false
     }).unless({
@@ -51,7 +51,7 @@ webapp.use('/article',article_list_router)  // 权限接口
 webapp.use('/users',userinfo_Router)     // 权限接口 用户信息的增删改查
 webapp.use('/my', user_login_Router)        // 登录注册 非权限接口
 webapp.use('/data',get_data_Router)         // get数据接口 非权限接口
-webapp.use('/archives',search_Router)
+webapp.use('/archives',search_Router)       // get文章接口 非权限接口
 webapp.use('/uploads', express.static('./uploads'))  // 静态资源
 // 重定向 阻止访问此页面
 webapp.get('/', (req, res) => {
@@ -77,14 +77,3 @@ webapp.use((err, req, res, next) => {
 webapp.listen(setting.kuo, () => {
     console.log('server Open ')
 })
-
-// 重定向 阻止访问此页面
-// webapp.get('/', (req, res) => {
-//     res.send(
-//     `
-//         <script>
-//             window.location.replace('https://jihau.top')
-//         </script>
-//     `
-//     )
-// })

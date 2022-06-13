@@ -10,20 +10,21 @@ exports.user_login_API = (req, res) => {
   // s执行sql语句
   db.query(sql, userinfo.username, (err, results) => {
     if(err) return res.cc(err)
-    if (results.length !== 1) return res.cc('登录失败! 查询错误')
+    if (results.length !== 1) return res.cc('登录失败 账号不存在！')
     //TODO 验证和生成token
     const compareResult = bcrypt.compareSync(userinfo.password, results[0].password)
     if(!compareResult) return res.cc('登录失败 密码错误 !')
     //if(userinfo.password!=results[0].password) return res.cc('登录失败 !')
-    const user = { ...results[0], password: ' ', user_pic: ' ' }
+    const user = { ...results[0], password: '', user_pic: '' }
     // 对用户的信息进行加密生成加密后的token                             token有效期
     const tokenStr = jwt.sign(user, config.jwtSecretKey, { expiresIn: config.expiresIn })
     req.session.user = tokenStr
     req.session.islogin = true
-    res.send({
+    res.json({
       status: 200,
       message:'登录成功',
       token: 'Bearer ' + tokenStr,
+      User: user
     })
   })
 }
@@ -39,7 +40,6 @@ exports.regUser = (req, res) => {
     }
     //TODO　用户名可以使用　进行密码加密
     userinfo.password = bcrypt.hashSync(userinfo.password, 10)
-
     // 插入用户
     const sql = 'insert into ev_users set ?'
     db.query(
@@ -52,6 +52,6 @@ exports.regUser = (req, res) => {
         res.cc('用户注册成功!', 0)
       }
     )
-  })  
+  })
 }
 

@@ -2,7 +2,8 @@
 // API端口
 const kuo = 80
 // 不进行token验证的子口
-const api = ['/data/list','/data/cates','/my/reguser/','/my/login/','/my/reguser/','/uploads/','/archives/:id']
+// const api = ['/data/list','/data/cates','/my/reguser','/my/login','/uploads/','/archives/']
+const api = [/^\/data|\/my|\/archives\/|\/uploads\//]
 /*　生成格式化日期 */
 const dayjs = require('dayjs')
 let d = new Date()

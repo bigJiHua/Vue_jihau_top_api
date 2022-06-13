@@ -1,6 +1,8 @@
 const db = require('../database/linkdb')
 const bcrypt = require('bcryptjs/dist/bcrypt')
 const e = require('express')
+const expressJoi = require("@escook/express-joi")
+const {artsear_id_schema} = require("../schema/put_article")
 
 exports.getUserInfo = (req,res) => {
   const sql = `SELECT * FROM ev_users`
@@ -12,6 +14,24 @@ exports.getUserInfo = (req,res) => {
       status:0,
       message:'获取用户信息列表成功',
       data
+    })
+  })
+}
+exports.getUserInfoUN = (req, res) => {
+  const UN = req.params.username
+  const sql = `select * from ev_users where username=?`
+  db.query(sql, UN, (err, results) => {
+    if (err) return res.cc(err)
+    if (results[0] === undefined)
+      return res.send({
+        status: 204,
+        message: '数据查找失败 || 无符合条件数据'
+      })
+    const user = { ...results[0], password: ' ', user_pic: ' ' }
+    res.send({
+      status: 200,
+      message: '用户信息数据获取成功！',
+      data: {...results[0], password:null}
     })
   })
 }
