@@ -46,13 +46,12 @@ exports.cagUserInfo = (req,res) => {
     db.query(sql,[body,body.id],(err,results)=>{
       if(err) return res.cc(err)
       if (results.affectedRows !== 1) return res.cc('更新用户数据失败')
-      res.send({
-        status: 0,
+      res.status(200).send({
+        status: 200,
         message:'信息更改成功'
       })
     })
   })
-
 }
 exports.delUserInfo = (req,res) => {
   const body = req.body

@@ -19,8 +19,10 @@ exports.user_login_API = (req, res) => {
     // 对用户的信息进行加密生成加密后的token                             token有效期
     const tokenStr = jwt.sign(user, config.jwtSecretKey, { expiresIn: config.expiresIn })
     req.session.user = tokenStr
-    req.session.islogin = true
-    res.json({
+    req.session.islogin = true// 如果前端允许传递cookie，加上这一句
+    // res.cookie('username',user.username, {domain:'127.0.0.1:8080',maxAge: 600000, httpOnly: true})
+    // res.cookie('Useridentity',user.useridentity, {domain:'127.0.0.1:8080',maxAge: 600000, httpOnly: true})
+    res.send({
       status: 200,
       message:'登录成功',
       token: 'Bearer ' + tokenStr,
@@ -44,7 +46,7 @@ exports.regUser = (req, res) => {
     const sql = 'insert into ev_users set ?'
     db.query(
       sql,
-      { username: userinfo.username, password: userinfo.password },
+      userinfo,
       (err, results) => {
         if (err) return res.cc(err)
         if (results.affectedRows !== 1)

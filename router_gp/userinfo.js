@@ -11,7 +11,7 @@ router.get('/getUinfo',userinfo_RM.getUserInfo)// 权限接口， 获取用户�
 // 权限接口， 删
 router.post('/delUser',expressJoi(uif_data_check.del_UserInfo),userinfo_RM.delUserInfo)
 // 权限接口， 改
-router.post('/cagUser',expressJoi(uif_data_check.cag_UserInfo),userinfo_RM.cagUserInfo)
+router.patch('/cagUser',expressJoi(uif_data_check.cag_UserInfo),userinfo_RM.cagUserInfo)
 
 
 // router.post('/sacUser',)// 权限接口， 查
