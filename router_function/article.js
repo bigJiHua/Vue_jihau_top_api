@@ -26,6 +26,19 @@ exports.article_cates = (req, res) => {
     })
   })
 }
+exports.article_uget = (req, res) => {
+  const user = req.params.username
+  const sql = 'SELECT * FROM ev_articles WHERE username=?'
+  db.query(sql, user, (err,results) => {
+    if (err) return res.cc(err)
+    if (results.length === 0) return res.cc('当前用户没有文章')
+    res.status(200).send({
+      status: 200,
+      message: '获取用户文章成功',
+      data: results
+    })
+  })
+}
 
 exports.article_put = (req, res) => {
   const put_data = req.body
