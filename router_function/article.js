@@ -3,29 +3,52 @@
 const db = require('../database/linkdb')
 const session = require('express-session')
 const setting = require('../setting')
-
+// 获取文章列表
 exports.article_list = (req, res) => {
   const sql = `select *from ev_articles where is_delete=0`
   db.query(sql, (err, results) => {
     if (err) return res.cc(err)
-    res.json({
-      data: results,
-      status: 0,
+    res.status(200).send({
+      status: 200,
       message: '获取成功',
+      data: results
     })
   })
 }
+// 获取文章归档
+exports.article_archive = (req, res) => {
+  const sql = `select *from ev_articles where is_delete=0`
+  db.query(sql, (err, results) => {
+    const newArry = []
+    results.forEach((item,index) =>{
+      const obj = new Object
+      obj.id = item.id
+      obj.month = item.pub_date
+      obj.title = item.title
+      obj.hurl = item.article_id
+      newArry.push(obj)
+    })
+    if (err) return res.cc(err)
+    res.status(200).send({
+      status: 200,
+      message: '获取成功',
+      data: newArry
+    })
+  })
+}
+// 获取文章分类
 exports.article_cates = (req, res) => {
   const sql = `select * from ev_article_cate`
   db.query(sql, (err, results) => {
     if (err) return res.cc(err)
-    res.json({
-      status: 0,
+    res.status(200).send({
+      status: 200,
       message: '获取成功',
       data: results,
     })
   })
 }
+// 查找名下的文章
 exports.article_uget = (req, res) => {
   const user = req.params.username
   const sql = 'SELECT * FROM ev_articles WHERE username=?'
@@ -39,7 +62,7 @@ exports.article_uget = (req, res) => {
     })
   })
 }
-
+// 发布文章
 exports.article_put = (req, res) => {
   const put_data = req.body
   put_data.pub_date = setting.put_date
@@ -72,14 +95,14 @@ exports.article_put = (req, res) => {
         if (err) return res.cc(err)
         if (err) return res.cc(err)
         if (results.affectedRows !== 1)
-          return res.cc('删除文章失败，请重新再试')
+          return res.cc('发布文章失败，请重新再试')
         if (results.length === 0) return res.cc('发布文章失败 !')
         res.cc('发布文章成功！')
       })
     })
   })
 }
-
+// 删除文章
 exports.article_del = (req, res) => {
   const sql = `update ev_articles set is_delete=1 where id=?`
   db.query(sql, req.body.id, (err, results) => {
@@ -91,7 +114,7 @@ exports.article_del = (req, res) => {
     })
   })
 }
-
+// 发布文章分类
 exports.article_upd = (req, res) => {
   const put_data = req.body
   put_data.pub_date = put_date

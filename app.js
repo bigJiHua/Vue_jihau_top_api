@@ -63,7 +63,6 @@ webapp.get('/', (req, res) => {
     `
     )
 })
-//http://127.0.0.1/article/2D5E83
 /* 路由模块 */
 
 // 定义错误级别中间件 拦截未知错误
@@ -72,7 +71,6 @@ webapp.use((err, req, res, next) => {
     if (err.name === 'UnauthorizedError') return res.cc('身份认证失败,请登录')
     return res.cc(err)
 })
-
 //     监听项目端口，运行时要修改
 webapp.listen(setting.kuo, () => {
     console.log('server Open ')

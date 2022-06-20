@@ -2,7 +2,6 @@ const db = require('../database/linkdb')
 const bcrypt = require('bcryptjs/dist/bcrypt')
 const e = require('express')
 const expressJoi = require("@escook/express-joi")
-const {artsear_id_schema} = require("../schema/put_article")
 
 exports.getUserInfo = (req,res) => {
   const sql = `SELECT * FROM ev_users`
@@ -10,13 +9,14 @@ exports.getUserInfo = (req,res) => {
     if(err) return res.cc(err)
     //if (results.length !== 1) return res.cc('获取用户信息列表为空')
     const data = results
-    res.json({
-      status:0,
+    res.status(200).send({
+      status:200,
       message:'获取用户信息列表成功',
       data
     })
   })
 }
+// 根据用户名查数据
 exports.getUserInfoUN = (req, res) => {
   const UN = req.params.username
   const sql = `select * from ev_users where username=?`
@@ -27,7 +27,6 @@ exports.getUserInfoUN = (req, res) => {
         status: 204,
         message: '数据查找失败 || 无符合条件数据'
       })
-    const user = { ...results[0], password: ' ', user_pic: ' ' }
     res.send({
       status: 200,
       message: '用户信息数据获取成功！',
@@ -56,7 +55,7 @@ exports.cagUserInfo = (req,res) => {
 exports.delUserInfo = (req,res) => {
   const body = req.body
   res.send({
-    status: 9,
+    status: 500,
     message:'!WARN 闭环测试状态，注销用户功能暂不提供'
   })
 }
