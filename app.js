@@ -53,6 +53,7 @@ webapp.use('/my', user_login_Router)        // 登录注册 非权限接口
 webapp.use('/data',get_data_Router)         // get数据接口 非权限接口
 webapp.use('/archives',search_Router)       // get文章接口 非权限接口
 webapp.use('/uploads', express.static('./uploads'))  // 静态资源
+webapp.use('/public/uploads', express.static('./public/uploads'))  // 静态资源
 // 重定向 阻止访问此页面
 webapp.get('/', (req, res) => {
     res.send(

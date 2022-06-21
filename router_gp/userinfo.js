@@ -7,6 +7,7 @@ const userinfo_RM = require('../router_function/userinfo')
 
 // 权限接口， 获取username的数据
 router.get('/:username',expressJoi(uif_data_check.get_UserInfoUN),userinfo_RM.getUserInfoUN)
+// 权限接口， 获取所有用户数据 TODO超管
 router.get('/getUinfo',userinfo_RM.getUserInfo)// 权限接口， 获取用户列表
 // 权限接口， 删
 router.post('/delUser',expressJoi(uif_data_check.del_UserInfo),userinfo_RM.delUserInfo)

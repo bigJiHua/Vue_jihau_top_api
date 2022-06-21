@@ -14,10 +14,12 @@ const lable = joi.string().allow('新文章')
 const id = joi.number().integer().min(1).required()
 const article_id = joi.string()
 const username = joi.string()
+const picusername = joi.string().required()
+const userimage = joi.string()
 
 
 // 验证规则对象 - 发布文章
-exports.add_article_schema = {
+exports.article_add_schema = {
     body: {
         id,
         username,
@@ -42,5 +44,18 @@ exports.article_id_schema = {
 exports.article_userget_schema = {
     body:{
         username,
+    }
+}
+// 图库
+exports.article_getimage = {
+    data: {
+        picusername
+    }
+}
+
+exports.article_delimage = {
+    body: {
+        picusername,
+        id
     }
 }
