@@ -11,6 +11,7 @@ const session= require('express-session')
 
 /* 中间件 */
 webapp.use(cors())
+webapp.use(express.json())
 webapp.use(express.urlencoded({ extended: false }))
 webapp.use((req, res, next) => {
     res.cc = function (err, status = 401) {

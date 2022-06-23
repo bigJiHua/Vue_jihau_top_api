@@ -23,7 +23,7 @@ exports.getUserInfoUN = (req, res) => {
   db.query(sql, UN, (err, results) => {
     if (err) return res.cc(err)
     if (results[0] === undefined)
-      return res.send({
+      return res.status(204).send({
         status: 204,
         message: '数据查找失败 || 无符合条件数据'
       })
@@ -58,4 +58,36 @@ exports.delUserInfo = (req,res) => {
     status: 500,
     message:'!WARN 闭环测试状态，注销用户功能暂不提供'
   })
+}
+
+// 用户行动
+exports.UserActive = (req,res) => {
+  const body = req.query
+
+  switch(body.actmenthos) {
+    case 'goodnum':
+      res.send({
+        status:200,
+        message: '点赞成功',
+        data: '点赞'
+      })
+      break
+    case 'collect':
+      res.send({
+        status:200,
+        message: '收藏成功',
+        data: '收藏'
+      })
+      break
+    case 'comment':
+      res.send({
+        status:200,
+        message: '评论成功',
+        data: '评论'
+      })
+      break
+  }
+  function action() {
+
+  }
 }

@@ -49,11 +49,6 @@ exports.article_cag_schema = {
     },
 }
 
-exports.article_id_schema = {
-    body:{
-        id,
-    }
-}
 
 exports.article_userget_schema = {
     body:{

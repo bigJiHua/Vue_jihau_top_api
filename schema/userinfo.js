@@ -14,7 +14,7 @@ const user_pic = joi.string()
 const useridentity = joi.string().max(3)
 const username = joi.string()
 
-
+// 用户信息
 exports.cag_UserInfo = {
   body:{
     id,
