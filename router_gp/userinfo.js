@@ -11,6 +11,7 @@ router.post('/delUser',expressJoi(uif_data_check.del_UserInfo),userinfo_RM.delUs
 router.patch('/cagUser',expressJoi(uif_data_check.cag_UserInfo),userinfo_RM.cagUserInfo) // 权限接口， 改
 
 // router.post('/sacUser',)// 权限接口， 查
+// 用户对文章的点赞、收藏、评论操作接口
 router.get('/action',userinfo_RM.UserActive)
 
 // 权限接口， 获取username的数据

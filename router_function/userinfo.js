@@ -1,6 +1,6 @@
 const db = require('../database/linkdb')
-const bcrypt = require('bcryptjs/dist/bcrypt')
-const {json} = require("express"); // 用户信息修改密码加密
+const bcrypt = require('bcryptjs/dist/bcrypt')// 用户信息修改密码加密
+const setting = require('../setting')
 
 exports.getUserInfo = (req,res) => {
   const sql = `SELECT * FROM ev_users`
@@ -60,7 +60,6 @@ exports.delUserInfo = (req,res) => {
 }
 
 // 用户行动
-
 function action(body) {
   switch(body.actmenthos) {
     case 'goodnum':
@@ -89,7 +88,8 @@ function action(body) {
         data: {
           username: body.username,
           comment : body.comment,
-          article_id: body.articleid
+          article_id: body.articleid,
+          pub_date: setting.put_date
         }
       }
       break
@@ -118,131 +118,97 @@ function clearaction(body) {
         }
       }
       break
-    case 'comment':
-      return data = {
-        message: '删除评论',
-        data: {
-          username: body.username,
-          comment : '',
-          article_id: body.articleid
-        }
-      }
-      break
   }
 }
 
 exports.UserActive = (req,res) => {
   const body = req.query
-  const data = action(body)
   const func = body.actmenthos
-  const cledata = clearaction(body)
+  const delcomment = body.delcomment
   const articleid = body.articleid
-  console.log(req.query)
+  const data = action(body)
+  const cledata = clearaction(body)
+  // 如果查询的文章ID为undefined 则打回去报错
   if (articleid !== undefined) {
-    const sql = `select article_id from ev_userartdata where username=? and article_id=?`
-    db.query(sql,[body.username,articleid], (err, results) => {
-      console.log(results)
-      if (err) return res.cc(err)
-      if (results.length === 0) {
-        const sql = 'insert into ev_userartdata set ?'
-        db.query(sql,data.data,(err,results) => {
+    // 判断func 用于区分作者是点赞收藏还是评论
+    if (func === 'goodnum' || func === 'collect') {
+      // 查询这个用户之前有没有操作过 （如果有操作过是可以查询到article_id的）
+      const sql = `select article_id from ev_userartdata where username=? and article_id=?`
+      db.query(sql,[body.username,articleid], (err, results) => {
+        console.log(results)
+        if (err) return res.cc(err)
+        // 如果没有操作过 则新插入
+        if (results.length === 0) {
+          const sql = 'insert into ev_userartdata set ?'
+          db.query(sql,data.data,(err,results) => {
+            if(err) return res.cc(err)
+            if(results.affectedRows !== 1 ) return res.cc(`${data.message}失败`)
+            res.send({
+              status: 200,
+              message: `${data.message}成功`
+            })
+          })
+        }
+        // 如果操作过 则更新之前的操作 【例如 点赞、收藏变为取消】
+        if(results.length > 0) {
+          const sql = `select ${func} from ev_userartdata where username=? and article_id=?`
+          db.query(sql,[body.username,articleid], (err,results) => {
+            if(err) return res.cc(err)
+            if(results.length === 0) return res.cc('操作错误')
+            const rval0 = JSON.parse(JSON.stringify(results))[0]
+            const k = Object.values(rval0)[0]
+            // k = 1 意思就是查到的操作在该文章已经点赞过或者收藏过，则就 反向操作进行取消
+            if(k === '1'){
+              const sql = `update ev_userartdata set ? where username=? and article_id=?`
+              db.query(sql,[cledata.data,body.username,articleid],(err,results) =>{
+                if(err) return res.cc(err)
+                if(results.affectedRows !== 1 ) return res.cc('操作失败')
+                res.status(200).send({
+                  status:200,
+                  message: cledata.message + '成功'
+                })
+              })
+            } else {
+              const sql = `update ev_userartdata set ? where username=? and article_id=?`
+              db.query(sql,[data.data,body.username,articleid],(err,results) =>{
+                if(err) return res.cc(err)
+                if(results.affectedRows !== 1 ) return res.cc('操作失败')
+                res.status(200).send({
+                  status:200,
+                  message: data.message + '成功'
+                })
+              })
+            }
+          })
+        }
+      })
+    } else if(func==='comment'){
+      if(delcomment){
+        const sql=`delete from ev_usercomment where username=? and article_id=?`
+        db.query(sql,[body.username,articleid],(err,results)=>{
+          if(err) return  res.cc(err)
+          if(results.affectedRows!==1)  return  res.cc('删除失败')
+          res.status(200).send({
+            status:200,
+            message:'删除成功'
+          })
+        })
+      }else{
+        const sql='insert into ev_usercomment set ?'
+        db.query(sql,data.data,(err,results)=>{
           if(err) return res.cc(err)
-          if(results.affectedRows !== 1 ) return res.cc(`${data.message}失败`)
-          res.send({
-            status: 200,
-            message: `${data.message}成功`
+          if(results.affectedRows!==1)return res.cc(`${data.message}失败`)
+          res.status(200).send({
+            status:200,
+            message:'评论成功!'
           })
         })
       }
-      if(results.length > 0) {
-        const sql = `select ${func} from ev_userartdata where username=? and article_id=?`
-        db.query(sql,[body.username,articleid], (err,results) => {
-          if(err) return res.cc(err)
-          if(results.length === 0) return res.cc('操作错误')
-          const rval0 = JSON.parse(JSON.stringify(results))[0]
-          const k = Object.values(rval0)[0]
-          if(k === '1'){
-            const sql = `update ev_userartdata set ? where username=? and article_id=?`
-            db.query(sql,[cledata.data,body.username,articleid],(err,results) =>{
-              if(err) return res.cc(err)
-              if(results.affectedRows !== 1 ) return res.cc('操作失败')
-              res.status(200).send({
-                status:200,
-                message: cledata.message + '成功'
-              })
-            })
-          } else {
-            const sql = `update ev_userartdata set ? where username=? and article_id=?`
-            db.query(sql,[data.data,body.username,articleid],(err,results) =>{
-              if(err) return res.cc(err)
-              if(results.affectedRows !== 1 ) return res.cc('操作失败')
-              res.status(200).send({
-                status:200,
-                message: data.message + '成功'
-              })
-            })
-          }
-        })
-      }
-    })
+    }
   } else {
     res.status(500).send({
       status: 500,
       message: '文章id错误'
     })
   }
-
 }
-/*
-*
-*
-    const rval = JSON.parse(JSON.stringify(results))
-    const getdata = rval[0][`${func}`]
-    if(err) return res.cc(err)
-    if(getdata.length) {
-      res.status(200).send({
-        status: 200,
-        message: '点赞成功',
-        data: data
-      })
-    }
-    if (results.length === 0) {
-      const sql = 'insert into ev_userartdata set ?'
-      db.query(sql,data,(err,results) => {
-        if(err) return res.cc(err)
-        if(results.affectedRows !== 1 ) return res.cc(`${data.message}失败`)
-        res.send({
-          status: 200,
-          message: `${data.message}成功`
-        })
-      })
-    }
-    if (results.length >= 1) {
-      const sql = `select ${body.actmenthos} from ev_userartdata where username=?`
-      db.query(sql,body.username,(err,results) => {
-        if(err) return res.cc(err)
-        if(results.value === 0 ) {
-          const sql = 'insert into ev_userartdata set ?'
-          db.query(sql,body.actmenthos,(err,results) =>{
-            if(err) return res.cc(err)
-            if(results.length === 0) res.cc('操作失败')
-            res.status(200).send({
-              status:200,
-              message: `${body.actmenthos}成功`
-            })
-          })
-        }
-        const sql = `update ev_userartdata set ? where username=?`
-        const cledata = clearaction(body)
-        db.query(sql,[cledata.data,body.username],(err,results) => {
-          if(err) return res.cc(err)
-          if(results.length ===0 ) return res.cc('取消失败')
-          res.status(200).send({
-            status:200,
-            message: `${cledata.message}成功`,
-          })
-        })
-      })
-    }
-*
-* */

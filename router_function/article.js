@@ -80,9 +80,9 @@ exports.article_put = (req, res) => {
       if (err) return res.cc(err)
       if (results.length === 2) return res.cc(err1)
       if (
-        results.length === 1 &&
-        results[0].title === put_data.title &&
-        results[0].article_id === put_data.article_id
+          results.length === 1 &&
+          results[0].title === put_data.title &&
+          results[0].article_id === put_data.article_id
       )
         return res.cc(err1)
       if (results.length === 1 && results[0].title === put_data.title)
@@ -103,7 +103,7 @@ exports.article_put = (req, res) => {
 }
 // 删除文章
 exports.article_del = (req, res) => {
-  const sql = `update ev_articles set is_delete=1,state='已删除' where id=?`
+  const sql = `update ev_articles set is_delete=1 where id=?`
   db.query(sql, req.body.id, (err, results) => {
     if (err) return res.cc(err)
     if (results.affectedRows !== 1) return res.cc('删除文章失败，请重新再试')
@@ -192,7 +192,7 @@ exports.article_imagedel = (req,res) => {
   const sql = `select * from ev_userimage where username=?`
   db.query(sql,body.picusername,(err,results)=>{
     if(err) return res.cc(err)
-    if(results.length === 0 ) return res.cc('用户错误')
+    if(results.length === 0 ) return res.cc('操作错误')
     const sql = `delete from ev_userimage where id=?`
     db.query(sql,body.id,(err,results)=>{
       if(err) return res.cc(err)
@@ -204,3 +204,43 @@ exports.article_imagedel = (req,res) => {
     })
   })
 }
+
+exports.article_data_gdco = (req,res) => {
+  const body = req.query
+  const sql = `select * from ev_userartdata where article_id = ?`
+  db.query(sql,body.article_id,(err,results) => {
+    if(err) return res.cc(err)
+    if(results.length === 0 ) return res.status(200).send({
+      status: 200,
+      message: '获取成功',
+      data: {
+        goodnum: 0,
+        collect: 0
+      }
+    })
+    res.status(200).send({
+      status: 200,
+      message: '获取成功',
+      data: results
+    })
+  })
+}
+
+exports.article_comment = (req,res) => {
+  const body = req.query
+  const sql = `select * from ev_usercomment where article_id = ?`
+  db.query(sql,body.article_id,(err,results) => {
+    if(err) return res.cc(err)
+    if(results.length === 0 ) return res.status(200).send({
+      status: 200,
+      message: '获取成功',
+      data: ''
+    })
+    res.status(200).send({
+      status: 200,
+      message: '获取成功',
+      data: results
+    })
+  })
+}
+
