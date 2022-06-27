@@ -2,8 +2,6 @@ const express = require('express')
 const router = express.Router()
 const expressJoi = require('@escook/express-joi')
 
-// 导入密码加密模块 bcryptjs
-const bcrypt = require('bcryptjs')
 
 const user_login_Router = require('../router_function/login')
 const user_schema_M = require('../schema/users')

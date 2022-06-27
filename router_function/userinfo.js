@@ -52,47 +52,43 @@ exports.cagUserInfo = (req,res) => {
   })
 }
 exports.delUserInfo = (req,res) => {
-  const body = req.body
+  // console.log(req.query.user)
   res.send({
-    status: 500,
-    message:'!WARN 闭环测试状态，注销用户功能暂不提供'
+    status: 406,
+    message:'WARN 406! 闭环测试状态，注销用户功能暂不提供'
   })
 }
 
 // 用户行动
 function action(body) {
-  switch(body.actmenthos) {
-    case 'goodnum':
-      return data = {
-        message: '点赞',
-        data: {
-          username: body.username,
-          goodnum : 1,
-          article_id: body.articleid,
-        }
+  if (body.actmenthos === 'goodnum') {
+    return data = {
+      message: '点赞',
+      data: {
+        username: body.username,
+        goodnum: 1,
+        article_id: body.articleid,
       }
-      break
-    case 'collect':
-      return data = {
-        message: '收藏',
-        data: {
-          username: body.username,
-          collect : 1,
-          article_id: body.articleid,
-        }
+    }
+  } else if (body.actmenthos === 'collect') {
+    return data = {
+      message: '收藏',
+      data: {
+        username: body.username,
+        collect: 1,
+        article_id: body.articleid,
       }
-      break
-    case 'comment':
-      return data = {
-        message: '评论',
-        data: {
-          username: body.username,
-          comment : body.comment,
-          article_id: body.articleid,
-          pub_date: setting.put_date
-        }
+    }
+  } else if (body.actmenthos === 'comment') {
+    return data = {
+      message: '评论',
+      data: {
+        username: body.username,
+        comment: body.comment,
+        article_id: body.articleid,
+        pub_date: setting.pub_date
       }
-      break
+    }
   }
 }
 
@@ -107,7 +103,6 @@ function clearaction(body) {
           article_id: body.articleid,
         }
       }
-      break
     case 'collect':
       return data = {
         message: '取消收藏',
@@ -117,7 +112,6 @@ function clearaction(body) {
           article_id: body.articleid,
         }
       }
-      break
   }
 }
 
@@ -212,3 +206,110 @@ exports.UserActive = (req,res) => {
     })
   }
 }
+
+
+// 获取点赞和评论
+exports.UserActiveData = (req,res) => {
+  const user = req.query.user
+  const data = {}
+  const sqlg =  `select
+    s.title,s.article_id,s.cover_img,s.username,s.content
+    from ev_userartdata d,ev_articles s
+    where d.article_id = s.article_id
+    and d.goodnum = 1 and d.username=?`
+  const sqls =  `select
+    s.title,s.article_id,s.cover_img,s.username,s.content
+    from ev_userartdata d,ev_articles s
+    where d.article_id = s.article_id
+    and d.collect = 1 and d.username=?`
+  const sqlc =  `select
+    s.article_id,s.title,s.username,d.comment,d.pub_date,s.cover_img,s.content
+    from ev_usercomment d,ev_articles s
+    where d.article_id = s.article_id
+    and d.username=?`
+  db.query(sqlg,user,(err,results)=>{
+    if(err) return res.cc(err,404)
+    if(results.length === 0) {
+      data.goodnum = 0
+    } else {
+      data.goodnum = results
+      data.goodnums = results.length
+      db.query(sqls,user,(err,results)=>{
+        if(err) return res.cc(err,404)
+        if(results.length === 0) {
+          data.collect = 0
+        } else {
+          data.collect = results
+          data.collects = results.length
+          db.query(sqlc,user,(err,results)=>{
+            if(err) return res.cc(err,404)
+            if(results.length === 0) {
+              data.comment = 0
+              data.comments = results.length
+              res.status(200).send({
+                status: 200,
+                message: '获取成功',
+                data: data
+              })
+            } else {
+              data.comment = results
+              data.comments = results.length
+              res.status(200).send({
+                status: 200,
+                message: '获取成功',
+                data: data
+              })
+            }
+          })
+        }
+      })
+    }
+
+  })
+}
+
+
+/*
+*
+// 获取点赞和评论
+exports.UserActiveData = (req,res) => {
+  const user = req.query.user
+  const sql =  `select
+    ev_userartdata.article_id,
+    ev_userartdata.goodnum,
+    ev_userartdata.collect
+    from ev_userartdata where username=? and goodnum=1 or collect=1`
+  db.query(sql,user,(err,results) => {
+    if(err) return res.cc(err,500)
+    if(results.length ===0 ) return res.cc('查询错误',500)
+    const data = {
+      gc: results,
+      comment: ''
+    }
+    const sql = `select
+    ev_usercomment.article_id,
+    ev_usercomment.comment,
+    ev_usercomment.pub_date
+    from ev_usercomment where username=?
+    `
+    db.query(sql,user,(err,results)=>{
+      if(err) return res.cc(err)
+      if(results.length ===0 ) {
+        data.comment = 0
+        res.status(200).send({
+          status: 200,
+          data: data
+        })
+      } else {
+        data.comment = results
+        res.status(200).send({
+          status: 200,
+          message: '获取成功',
+          data: data
+        })
+      }
+    })
+  })
+}
+
+* */

@@ -1,4 +1,3 @@
-//TODO　函数的主入口
 /* 导入模块 */
 const express = require('express')
 const webapp = express()
@@ -14,11 +13,18 @@ webapp.use(cors())
 webapp.use(express.json())
 webapp.use(express.urlencoded({ extended: false }))
 webapp.use((req, res, next) => {
-    res.cc = function (err, status = 401) {
-        res.send({
-            status,
-            message: err instanceof Error ? err.message : err,
-        })
+    res.cc = function (err, status ) {
+        if (status === '') {
+            res.send({
+                status : 206,
+                message: err instanceof Error ? err.message : err,
+            })
+        } else {
+            res.send({
+                status : status,
+                message: err instanceof Error ? err.message : err,
+            })
+        }
     }
     next()
 })
@@ -69,9 +75,9 @@ webapp.get('/', (req, res) => {
 
 // 定义错误级别中间件 拦截未知错误
 webapp.use((err, req, res, next) => {
-    if (err instanceof Joi.ValidationError) return res.cc(err)
-    if (err.name === 'UnauthorizedError') return res.cc('身份认证失败,请登录')
-    return res.cc(err)
+    if (err instanceof Joi.ValidationError) return res.cc(err,202)
+    if (err.name === 'UnauthorizedError') return res.cc('身份认证失败,请登录',401)
+    return res.cc(err,202)
 })
 //     监听项目端口，运行时要修改
 webapp.listen(setting.kuo, () => {

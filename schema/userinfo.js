@@ -28,11 +28,7 @@ exports.cag_UserInfo = {
     username
   }
 }
-exports.del_UserInfo = {
-  body:{
-    id
-  }
-}
+
 exports.get_UserInfoUN = {
   body:{
     username

@@ -6,17 +6,10 @@ const router = express.Router()
 
 router.get('/?',(req, res) => {
   const UID = req.query.id
-  const sql = `select * from ev_articles where article_id=?`
+  const sql = `select * from ev_articles where article_id=? and is_delete=0`
   db.query(sql, UID, (err, results) => {
     if (err) return res.cc(err)
-    if (results[0] === 0)
-      return res.status(404).send({
-        status: 404,
-        message: '404 NOT FOUND',
-        data: {
-          content: '<h1>404 NOT FOUND</h1>'
-        }
-      })
+    if (results.length === 0) return res.cc('404 NOT FOUNT',404)
     res.status(200).send({
       status: 200,
       message: '获取文章成功',

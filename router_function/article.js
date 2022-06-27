@@ -20,12 +20,13 @@ exports.article_archive = (req, res) => {
   const sql = `select *from ev_articles where is_delete=0`
   db.query(sql, (err, results) => {
     const newArry = []
-    results.forEach((item,index) =>{
-      const obj = new Object
-      obj.id = item.id
-      obj.month = item.pub_date
-      obj.title = item.title
-      obj.hurl = item.article_id
+    results.forEach((item) =>{
+      const obj = {
+        id    : item.id,
+        month : item.pub_month,
+        title : item.title,
+        hurl  : item.article_id
+        }
       newArry.push(obj)
     })
     if (err) return res.cc(err)
@@ -65,7 +66,8 @@ exports.article_uget = (req, res) => {
 // 发布文章
 exports.article_put = (req, res) => {
   const put_data = req.body
-  put_data.pub_date = setting.put_date
+  put_data.pub_date = setting.pub_date
+  put_data.pub_month = setting.pub_month
   const UID = setting.generateMixed(4)
   const sql = `select * from ev_articles where article_id=?`
   db.query(sql, UID, (err, results) => {
@@ -137,7 +139,7 @@ exports.article_cag = (req,res) => {
 // 发布文章分类
 exports.article_upd = (req, res) => {
   const put_data = req.body
-  put_data.pub_date = put_date
+  put_data.pub_date = setting.put_date
   const sql = `insert into ev_articles set ?`
   db.query(sql, put_data, (err, results) => {
     if (err) return res.cc(err)
