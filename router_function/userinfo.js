@@ -91,7 +91,6 @@ function action(body) {
     }
   }
 }
-
 function clearaction(body) {
   switch(body.actmenthos) {
     case 'goodnum':
@@ -114,7 +113,6 @@ function clearaction(body) {
       }
   }
 }
-
 exports.UserActive = (req,res) => {
   const body = req.query
   const func = body.actmenthos
@@ -129,7 +127,6 @@ exports.UserActive = (req,res) => {
       // 查询这个用户之前有没有操作过 （如果有操作过是可以查询到article_id的）
       const sql = `select article_id from ev_userartdata where username=? and article_id=?`
       db.query(sql,[body.username,articleid], (err, results) => {
-        console.log(results)
         if (err) return res.cc(err)
         // 如果没有操作过 则新插入
         if (results.length === 0) {
@@ -207,109 +204,72 @@ exports.UserActive = (req,res) => {
   }
 }
 
-
 // 获取点赞和评论
-exports.UserActiveData = (req,res) => {
-  const user = req.query.user
+exports.UserActiveData = async (req,res) => {
+  const body = req.query
   const data = {}
   const sqlg =  `select
-    s.title,s.article_id,s.cover_img,s.username,s.content
+    s.title,s.article_id,s.cover_img,s.username,s.content,d.id
     from ev_userartdata d,ev_articles s
     where d.article_id = s.article_id
     and d.goodnum = 1 and d.username=?`
   const sqls =  `select
-    s.title,s.article_id,s.cover_img,s.username,s.content
+    s.title,s.article_id,s.cover_img,s.username,s.content,d.id
     from ev_userartdata d,ev_articles s
     where d.article_id = s.article_id
     and d.collect = 1 and d.username=?`
   const sqlc =  `select
-    s.article_id,s.title,s.username,d.comment,d.pub_date,s.cover_img,s.content
+    s.article_id,s.title,s.username,d.comment,d.pub_date,s.cover_img,d.id
     from ev_usercomment d,ev_articles s
     where d.article_id = s.article_id
     and d.username=?`
-  db.query(sqlg,user,(err,results)=>{
-    if(err) return res.cc(err,404)
-    if(results.length === 0) {
-      data.goodnum = 0
-    } else {
-      data.goodnum = results
-      data.goodnums = results.length
-      db.query(sqls,user,(err,results)=>{
-        if(err) return res.cc(err,404)
-        if(results.length === 0) {
-          data.collect = 0
-        } else {
-          data.collect = results
-          data.collects = results.length
-          db.query(sqlc,user,(err,results)=>{
-            if(err) return res.cc(err,404)
-            if(results.length === 0) {
-              data.comment = 0
-              data.comments = results.length
-              res.status(200).send({
-                status: 200,
-                message: '获取成功',
-                data: data
-              })
-            } else {
-              data.comment = results
-              data.comments = results.length
-              res.status(200).send({
-                status: 200,
-                message: '获取成功',
-                data: data
-              })
-            }
-          })
-        }
-      })
-    }
-
+  data.goodnum = await doActiveData(sqlg,body.user)
+  data.collect = await doActiveData(sqls,body.user)
+  data.comment = await doActiveData(sqlc,body.user)
+  data.goodnums = data.goodnum.length
+  data.collects = data.collect.length
+  data.comments = data.comment.length
+  res.status(200).send({
+    status: 200,
+    message: '获取消息成功',
+    data: data
   })
 }
 
-
-/*
-*
-// 获取点赞和评论
-exports.UserActiveData = (req,res) => {
-  const user = req.query.user
-  const sql =  `select
-    ev_userartdata.article_id,
-    ev_userartdata.goodnum,
-    ev_userartdata.collect
-    from ev_userartdata where username=? and goodnum=1 or collect=1`
-  db.query(sql,user,(err,results) => {
-    if(err) return res.cc(err,500)
-    if(results.length ===0 ) return res.cc('查询错误',500)
-    const data = {
-      gc: results,
-      comment: ''
-    }
-    const sql = `select
-    ev_usercomment.article_id,
-    ev_usercomment.comment,
-    ev_usercomment.pub_date
-    from ev_usercomment where username=?
-    `
-    db.query(sql,user,(err,results)=>{
-      if(err) return res.cc(err)
-      if(results.length ===0 ) {
-        data.comment = 0
-        res.status(200).send({
-          status: 200,
-          data: data
-        })
-      } else {
-        data.comment = results
-        res.status(200).send({
-          status: 200,
-          message: '获取成功',
-          data: data
-        })
+function doActiveData (sql, username){
+  const promise = new Promise((resolve, reject) => {
+    db.query(sql,username,(err,results)=> {
+      if(err){
+        reject(err)
+        return
       }
+      resolve(results)
     })
+  }).catch( err =>{
+    return err
   })
+  return promise
 }
 
-* */
+
+
+// 删除评论
+exports.UserDelActive = async (req, res) => {
+  const body = req.query
+  if (body.username !== undefined) {
+    const sql = `delete from ev_usercomment where id=? and username=? and article_id=?`
+    db.query(sql,[body.id,body.username,body.article_id],(err,results) => {
+      if(err) return res.cc(err)
+      if(results.affectedRows === 0) res.cc('删除失败',500)
+      res.status(200).send({
+        status: 200,
+        message: '删除成功'
+      })
+    })
+  } else {
+    res.status(404).send({
+      status: 404,
+      message: '用户名不能为undefined'
+    })
+  }
+}

@@ -19,6 +19,58 @@ function generateMixed(n) {
       }
       return res + art_idnum;
 }
+//
+// // 定时清理ev_userartdata 点赞和评论都为0的函数
+// const db = require('./database/linkdb')
+// function clearUserartdata () {
+//     const promise = new Promise((resolve,reject)=>{
+//         const sql = `select
+//         ev_userartdata.goodnum,ev_userartdata.collect
+//         from
+//         ev_userartdata
+//         where goodnum =0 and collect = 0
+//         `
+//         db.query(sql,(err,results) => {
+//             if(err) {
+//                 const data = {
+//                     err: err,
+//                     log: '自动化处理点赞和评论失败',
+//                     user: 'admin',
+//                     pub_date: pub_date
+//                 }
+//                 db.query(`insert into ev_error_log set ?`,data,(err,results)=>{
+//                     if(err) return
+//                 })
+//             }
+//             const sql = `update ev_userartdata set state=1 where goodnum=0 and collect=0`
+//             db.query(sql,(err,results)=>{
+//                 if(err) {
+//                     const data = {
+//                         err: err,
+//                         log: '自动化处理点赞和评论失败',
+//                         user: 'admin',
+//                         pub_date: pub_date
+//                     }
+//                     db.query(`insert into ev_error_log set ?`,data,(err,results)=>{
+//                         if(err) return
+//                     })
+//                 }
+//                 const data = {
+//                     err: results,
+//                     log: '自动化处理点赞和评论成功',
+//                     user: 'admin',
+//                     pub_date: pub_date
+//                 }
+//                 db.query(`insert into ev_error_log set ?`,data,(err)=>{
+//                     if(err) return
+//                 })
+//             })
+//         })
+//     })
+//     console.log('执行')
+// }
+//
+// setInterval(clearUserartdata,1000*60*60*18)
 
 module.exports={
   kuo,

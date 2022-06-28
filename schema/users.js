@@ -3,11 +3,11 @@ const joi = require('joi')
 const username = joi.string().min(3).max(15).required() //.alphanum()
 const password = joi.string().pattern(/^[\S]{6,12}$/).required()
 const email = joi.string().email().required()
-const sex = joi.string()
-const city = joi.string()
-const my_content = joi.string()
-const user_pic = joi.string()
-const birthday = joi.string()
+const sex = joi.string().allow(null, '')
+const city = joi.string().allow(null, '')
+const user_content = joi.string().allow(null, '')
+const user_pic = joi.string().allow(null, '')
+const birthday = joi.string().allow(null, '')
 
 exports.user_loginRouter = {
   body:{
@@ -23,7 +23,7 @@ exports.user_regUserRM = {
     birthday,
     sex,
     city,
-    my_content,
+    user_content,
     user_pic
   }
 }
