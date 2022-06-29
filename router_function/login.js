@@ -7,11 +7,11 @@ const config = require('../config')
 // 用户登录
 exports.user_login_API = (req, res) => {
   const userinfo = req.body
-  const sql = `select * from ev_users where username=?`
+  const sql = `select * from ev_users where username=? and state=0`
   // s执行sql语句
   db.query(sql, userinfo.username, (err, results) => {
     if(err) return res.cc(err)
-    if (results.length !== 1) return res.cc('登录失败 账号不存在！')
+    if (results.length !== 1) return res.cc('登录失败 账号不存在或已经被注销！',404)
     const compareResult = bcrypt.compareSync(userinfo.password, results[0].password)
     if(!compareResult) return res.cc('登录失败 密码错误 !',401)
     //if(userinfo.password!=results[0].password) return res.cc('登录失败 !')

@@ -1,27 +1,47 @@
 const db = require('../database/linkdb')
 const bcrypt = require('bcryptjs/dist/bcrypt')// 用户信息修改密码加密
 const setting = require('../setting')
-
+// 获取用户信息
 exports.getUserInfo = (req,res) => {
-  const sql = `SELECT * FROM ev_users`
-  db.query(sql,(err,results)=>{
-    if(err) return res.cc(err)
-    if (results.length === 0) return res.cc('获取用户信息列表为空')
-    const data = results
-    res.status(200).send({
-      status:200,
-      message:'获取用户信息列表成功',
-      data
+  const user = req.query.user
+  if (user) {
+    const sql = `select useridentity from ev_users where username=?`
+    db.query(sql,user,(err,results) => {
+      if (err) return res.cc(err,404)
+      if (results.length === 0) return res.cc('非法用户', 404)
+      let uidti = JSON.parse(JSON.stringify(results))[0].useridentity
+      if (uidti === '管理员') {
+        const sql = `SELECT
+        ev_users.id,ev_users.username,ev_users.useridentity,
+        ev_users.nickname,ev_users.sex,ev_users.city,ev_users.email,
+        ev_users.user_pic,ev_users.user_content,ev_users.birthday,ev_users.state
+        FROM ev_users`
+        db.query(sql,(err,results)=>{
+          if(err) return res.cc(err)
+          if (results.length === 0) return res.cc('获取用户信息列表为空')
+          res.status(200).send({
+            status:200,
+            message:'获取用户信息列表成功',
+            data: results
+          })
+        })
+      } else {
+        res.cc('你不是管理员，无法进行此操作',403)
+      }
     })
-  })
+  } else {
+   return res.cc('非法用户', 404)
+  }
 }
+
+
 // 根据用户名查数据
 exports.getUserInfoUN = (req, res) => {
   const UN = req.params.username
-  const sql = `select * from ev_users where username=?`
+  const sql = `select * from ev_users where username=? and state=0`
   db.query(sql, UN, (err, results) => {
     if (err) return res.cc(err)
-    if (results[0] === undefined)
+    if (results.length === 0)
       return res.status(204).send({
         status: 204,
         message: '数据查找失败 || 无符合条件数据'
@@ -34,6 +54,7 @@ exports.getUserInfoUN = (req, res) => {
   })
 }
 
+// 修改用户信息
 exports.cagUserInfo = (req,res) => {
   const body = req.body
   const sql = `select * from ev_users where id=?`
@@ -51,15 +72,37 @@ exports.cagUserInfo = (req,res) => {
     })
   })
 }
+
+// TODO 删除用户
 exports.delUserInfo = (req,res) => {
-  // console.log(req.query.user)
-  res.send({
-    status: 406,
-    message:'WARN 406! 闭环测试状态，注销用户功能暂不提供'
-  })
+  const user = req.query.user
+  const deluser = req.query.deluser
+  if (user && deluser) {
+    const sql = `select useridentity from ev_users where username=?`
+    db.query(sql,user,(err,results) => {
+      if (err) return res.cc(err,404)
+      if (results.length === 0) return res.cc('非法用户', 404)
+      let uidti = JSON.parse(JSON.stringify(results))[0].useridentity
+      if (uidti === '管理员') {
+        const sql = `update ev_users set state=1 where username=? `
+        db.query(sql,deluser,(err,results)=>{
+          if(err) return res.cc(err)
+          if (results.length === 0) return res.cc('注销失败', 403)
+          res.status(200).send({
+            status:200,
+            message:'注销成功'
+          })
+        })
+      } else {
+        res.cc('你不是管理员，无法进行此操作',403)
+      }
+    })
+  } else {
+    return res.cc('非法用户', 404)
+  }
 }
 
-// 用户行动
+// 用户行动 点赞 收藏 评论 或者取反操作
 function action(body) {
   if (body.actmenthos === 'goodnum') {
     return data = {
@@ -235,7 +278,6 @@ exports.UserActiveData = async (req,res) => {
     data: data
   })
 }
-
 function doActiveData (sql, username){
   const promise = new Promise((resolve, reject) => {
     db.query(sql,username,(err,results)=> {
@@ -250,8 +292,6 @@ function doActiveData (sql, username){
   })
   return promise
 }
-
-
 
 // 删除评论
 exports.UserDelActive = async (req, res) => {
