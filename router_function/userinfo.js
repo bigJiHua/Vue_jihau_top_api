@@ -4,6 +4,7 @@ const setting = require('../setting')
 // 获取用户信息
 exports.getUserInfo = (req,res) => {
   const user = req.query.user
+  const n = parseInt(req.query.n)
   if (user) {
     const sql = `select useridentity from ev_users where username=?`
     db.query(sql,user,(err,results) => {
@@ -11,19 +12,26 @@ exports.getUserInfo = (req,res) => {
       if (results.length === 0) return res.cc('非法用户', 404)
       let uidti = JSON.parse(JSON.stringify(results))[0].useridentity
       if (uidti === '管理员') {
-        const sql = `SELECT
-        ev_users.id,ev_users.username,ev_users.useridentity,
-        ev_users.nickname,ev_users.sex,ev_users.city,ev_users.email,
-        ev_users.user_pic,ev_users.user_content,ev_users.birthday,ev_users.state
-        FROM ev_users`
-        db.query(sql,(err,results)=>{
-          if(err) return res.cc(err)
-          if (results.length === 0) return res.cc('获取用户信息列表为空')
-          res.status(200).send({
-            status:200,
-            message:'获取用户信息列表成功',
-            data: results
-          })
+        const sql = `select * from ev_users`
+        db.query(sql,(err,results) => {
+          if(err) return res.cc(err,404)
+          if (results.length === 0 ) return res.cc('用户数据为0',200)
+          const length = results.length
+          const sql = `SELECT
+          ev_users.id,ev_users.username,ev_users.useridentity,
+          ev_users.nickname,ev_users.sex,ev_users.city,ev_users.email,
+          ev_users.user_pic,ev_users.user_content,ev_users.birthday,ev_users.state
+          FROM ev_users  limit 5 offset ?`
+            db.query(sql,n,(err,results)=>{
+              if(err) return res.cc(err)
+              if (results.length === 0) return res.cc('404',404)
+              res.status(200).send({
+                status:200,
+                message:'获取用户信息列表成功',
+                data: results,
+                length: length
+              })
+            })
         })
       } else {
         res.cc('你不是管理员，无法进行此操作',403)

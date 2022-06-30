@@ -98,7 +98,10 @@ exports.article_put = (req, res) => {
         if (results.affectedRows !== 1)
           return res.cc('发布文章失败，请重新再试')
         if (results.length === 0) return res.cc('发布文章失败 !')
-        res.cc('发布文章成功！')
+        res.status(200).send({
+          message: '发布文章成功!',
+          article: UID
+        })
       })
     })
   })
