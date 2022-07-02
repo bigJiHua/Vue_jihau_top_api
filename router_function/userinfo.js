@@ -255,7 +255,7 @@ exports.UserActive = (req,res) => {
   }
 }
 
-// 获取点赞和评论
+// 获取当前用户的点赞和评论
 exports.UserActiveData = async (req,res) => {
   const body = req.query
   const data = {}
