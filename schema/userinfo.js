@@ -12,7 +12,9 @@ const state = 0
 const user_content = joi.string().max(255).allow(null, '')
 const user_pic = joi.string().allow(null, '')
 const useridentity = joi.string().allow(null, '')
-const username = joi.string()
+const oldpwd = joi.string().required()
+const newpwd = joi.string().required()
+const username = joi.string().required()
 
 // 用户信息
 exports.cag_UserInfo = {
@@ -32,6 +34,15 @@ exports.cag_UserInfo = {
 
 exports.get_UserInfoUN = {
   body:{
+    username
+  }
+}
+
+// 修改密码
+exports.cag_UserPassword = {
+  body: {
+    oldpwd,
+    newpwd,
     username
   }
 }

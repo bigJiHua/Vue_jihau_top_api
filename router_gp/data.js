@@ -7,6 +7,6 @@ const getSetting_function = require('../router_function/setting_link')
 router.get('/list', article_function.article_list)
 router.get('/archive', article_function.article_archive)
 router.get('/cates', article_function.article_cates)
-router.get('/setting', getSetting_function.router_getSetting)
+router.get('/Lunbo', getSetting_function.router_getLunbo)
 
 module.exports = router

@@ -1,0 +1,10 @@
+const express = require('express')
+const router = express.Router()
+const expressJoi = require('@escook/express-joi')
+
+const Setting_schema_M = require('../schema/Setting')
+const Setting_Router = require('../router_function/setting_link')
+
+router.post('/Lunbo',expressJoi(Setting_schema_M.getSetting),Setting_Router.router_setLunbo)
+
+module.exports = router

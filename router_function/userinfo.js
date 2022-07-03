@@ -45,7 +45,7 @@ exports.getUserInfo = (req,res) => {
 
 // 根据用户名查数据
 exports.getUserInfoUN = (req, res) => {
-  const UN = req.params.username
+  const UN = req.body.username
   const sql = `select * from ev_users where username=? and state=0`
   db.query(sql, UN, (err, results) => {
     if (err) return res.cc(err)
@@ -81,7 +81,7 @@ exports.cagUserInfo = (req,res) => {
   })
 }
 
-// TODO 删除用户
+// 管理员注销用户
 exports.delUserInfo = (req,res) => {
   const user = req.query.user
   const deluser = req.query.deluser
