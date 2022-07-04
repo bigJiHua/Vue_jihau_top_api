@@ -2,11 +2,12 @@
 const express = require('express')
 const router = express.Router()
 const expressJoi = require('@escook/express-joi')
+const setting = require('../setting')
 
 const multer = require('multer')
 const storage = multer.diskStorage({
     destination: function (req,file,cb) {
-        cb(null, 'C:\\Users\\jihua\\Desktop\\node\\api111\\api\\public/uploads')
+        cb(null, setting.path)
     },
     filename: function (req,file,cb) {
         cb(null,file.originalname)

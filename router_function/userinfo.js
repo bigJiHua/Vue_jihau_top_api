@@ -42,10 +42,9 @@ exports.getUserInfo = (req,res) => {
   }
 }
 
-
 // 根据用户名查数据
 exports.getUserInfoUN = (req, res) => {
-  const UN = req.body.username
+  const UN = req.query.user
   const sql = `select * from ev_users where username=? and state=0`
   db.query(sql, UN, (err, results) => {
     if (err) return res.cc(err)
@@ -57,7 +56,7 @@ exports.getUserInfoUN = (req, res) => {
     res.send({
       status: 200,
       message: '用户信息数据获取成功！',
-      data: {...results[0], password:null}
+      data: {...results[0], password:''}
     })
   })
 }
@@ -80,6 +79,33 @@ exports.cagUserInfo = (req,res) => {
     })
   })
 }
+
+// 修改用户密码
+exports.cagUserPwd = (req,res) => {
+  const oldpwd = req.body.oldpwd
+  const newpwd = req.body.newpwd
+  const user = req.body.username
+  const sql = `select password from ev_users where username=?`
+  db.query(sql,user,(err,results)=>{
+    if(err) return res.cc(err)
+    if(results.length === 0) return res.cc('错误，请重试', 500)
+    const Checkoldpwd = bcrypt.compareSync(oldpwd, results[0].password)
+    if(!Checkoldpwd) return res.cc('修改失败，原密码错误',401)
+    const Check_nopwd = bcrypt.compareSync(newpwd, results[0].password)
+    if(Check_nopwd) return res.cc('修改失败，原密码不能与旧密码相同',401)
+    const sql = `update ev_users set password=? where username=?`
+    const password = bcrypt.hashSync(newpwd, 10)
+    db.query(sql,[password,user],(err,results)=>{
+      if(err) return res.cc(err)
+      if(results.affectedRows !== 1) return res.cc('错误，请重试', 500)
+      res.status(200).send({
+        status: 200,
+        message: '修改成功'
+      })
+    })
+  })
+}
+
 
 // 管理员注销用户
 exports.delUserInfo = (req,res) => {

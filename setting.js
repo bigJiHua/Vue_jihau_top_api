@@ -2,7 +2,11 @@
 // API端口
 const kuo = 80
 // 不进行token验证的子口
-const api = [/^\/data|\/my|\/archives\/|\/uploads\//]
+const api = [/^\/data|\/my|\/archives\/|\/public\//]
+const cagapi = [/^\/api\/data|\/api\/my|\/api\/archives\/|\/api\/public\//]
+// 文件上传路径
+const path = 'C:\\Users\\jihua\\Desktop\\node\\api111\\api\\public/uploads'
+const selpath = 'https://jihau.top/public/uploads/'
 /*　生成格式化日期 */
 const dayjs = require('dayjs')
 let d = new Date()
@@ -73,9 +77,11 @@ function generateMixed(n) {
 // setInterval(clearUserartdata,1000*60*60*18)
 
 module.exports={
-  kuo,
-  api,
-  pub_date,
-  pub_month,
-  generateMixed,
+      kuo,
+    path,
+    selpath,
+      api,
+      pub_date,
+      pub_month,
+      generateMixed,
 }

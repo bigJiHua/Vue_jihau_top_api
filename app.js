@@ -1,4 +1,3 @@
-/* 导入模块 */
 const express = require('express')
 const webapp = express()
 const cors = require('cors')
@@ -6,7 +5,6 @@ const Joi = require('joi')
 const { expressjwt: expressJWT } = require('express-jwt')
 const setting = require('./setting')
 const session= require('express-session')
-/* 导入模块 */
 
 /* 中间件 */
 webapp.use(cors())
@@ -61,18 +59,7 @@ webapp.use('/setting',setting_Router)       // 权限接口 管理员修改站�
 webapp.use('/my', user_login_Router)        // 登录注册 非权限接口
 webapp.use('/data',get_data_Router)         // get数据接口 非权限接口
 webapp.use('/archives',search_Router)       // get文章接口 非权限接口
-webapp.use('/uploads', express.static('./uploads'))  // 静态资源
-webapp.use('/public/uploads', express.static('./public/uploads'))  // 静态资源
-// 重定向 阻止访问此页面
-webapp.get('/', (req, res) => {
-    res.send(
-    `
-        <script>
-            window.location.replace('https://jihau.top')
-        </script>
-    `
-    )
-})
+webapp.use('/public/uploads', express.static('./public/uploads')) // 静态资源
 /* 路由模块 */
 
 // 定义错误级别中间件 拦截未知错误
@@ -83,5 +70,5 @@ webapp.use((err, req, res, next) => {
 })
 //     监听项目端口，运行时要修改
 webapp.listen(setting.kuo, () => {
-    console.log('server Open ')
+    console.log('server Open')
 })
