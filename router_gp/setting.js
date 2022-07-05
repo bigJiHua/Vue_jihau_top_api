@@ -6,5 +6,6 @@ const Setting_schema_M = require('../schema/Setting')
 const Setting_Router = require('../router_function/setting_link')
 
 router.post('/Lunbo',expressJoi(Setting_schema_M.getSetting),Setting_Router.router_setLunbo)
+router.post('/DevP',expressJoi(Setting_schema_M.DevPSetting),Setting_Router.router_setDevp)
 
 module.exports = router
