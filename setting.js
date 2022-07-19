@@ -1,14 +1,14 @@
 // APi设置面板
 // API端口
-const kuo = 80
+const kuo = 80 // 20907
 // 不进行token验证的子口
-const api = [/^\/data|\/my|\/archives\/|\/public\//]
+const api = [/^\/data|\/my|\/archives\/|\/public\/|^\/sitemap/]
 // 部署API
-const cagapi = [/^\/api\/data|\/api\/my|\/api\/archives\/|\/api\/public\//]
+// const api = [/^\/api\/data|\/api\/my|\/api\/archives\/|\/api\/public\/|^\/sitemap/]
 // 文件上传路径
-const path = 'C:\\Users\\jihua\\Desktop\\node\\api111\\api\\public/uploads'
+const path = '/www/wwwroot/jihau_top/public/uploads'
 // 文件访问路径
-const selpath = 'https://jihau.top/public/uploads/'
+const selpath = 'https://jihau.top/api/public/uploads/'
 /*　生成格式化日期 */
 const dayjs = require('dayjs')
 let d = new Date()

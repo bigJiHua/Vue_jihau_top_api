@@ -34,16 +34,8 @@ router.get('/?',(req, res) => {
         if(err) return res.cc(err)
         const getdata = JSON.parse(JSON.stringify(results))[0]
         if(getdata) {
-          if (parseInt(getdata.goodnum) === 1) {
-            data.acgoodnum = true
-          } else {
-            data.acgoodnum = false
-          }
-          if (parseInt(getdata.collect) === 1) {
-            data.accollect = true
-          } else {
-            data.accollect = false
-          }
+          data.acgoodnum = parseInt(getdata.goodnum) === 1;
+          data.accollect = parseInt(getdata.collect) === 1;
           const sql1 = `select * from ev_usercomment  where article_id = ?`
           db.query(sql1,UID,(err,results)=>{
             if(err) return res.cc(err)

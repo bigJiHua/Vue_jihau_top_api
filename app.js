@@ -5,6 +5,11 @@ const Joi = require('joi')
 const { expressjwt: expressJWT } = require('express-jwt')
 const setting = require('./setting')
 const session= require('express-session')
+// const { SitemapStream, streamToPromise } = require('sitemap')
+// const { createGzip } = require('zlib')
+// const db = require('./database/linkdb')
+// const { Readable } = require('stream')
+// let sitemap
 
 /* 中间件 */
 webapp.use(cors())
@@ -60,6 +65,7 @@ webapp.use('/my', user_login_Router)        // 登录注册 非权限接口
 webapp.use('/data',get_data_Router)         // get数据接口 非权限接口
 webapp.use('/archives',search_Router)       // get文章接口 非权限接口
 webapp.use('/public/uploads', express.static('./public/uploads')) // 静态资源
+
 /* 路由模块 */
 
 // 定义错误级别中间件 拦截未知错误

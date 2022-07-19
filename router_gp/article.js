@@ -22,8 +22,6 @@ const { article_add_schema,article_id_schema,article_cag_schema,article_delimage
 router.post('/addart', expressJoi(article_add_schema), article_function.article_put) // 新增文章
 router.post('/delart?',expressJoi(article_id_schema),article_function.article_del) // 删除文章
 router.post('/cagart', expressJoi(article_cag_schema), article_function.article_cag) // 修改文章
-router.get('/updcate/:id',expressJoi(article_add_schema),article_function.article_upd) // 更新分类
-
 router.post('/img/?', expressJoi(article_getimage), article_function.article_image) // 获取名下图片
 router.post('/upimg/', upload.single('file') , article_function.article_upimage) // 文件上传接口
 router.post('/imgdel?', expressJoi(article_delimage), article_function.article_imagedel) // 删除图片

@@ -313,17 +313,18 @@ exports.UserActiveData = async (req,res) => {
   })
 }
 function doActiveData (sql, username){
-  const promise = new Promise((resolve, reject) => {
-    db.query(sql,username,(err,results)=> {
-      if(err){
+  let promise;
+  promise = new Promise((resolve, reject) => {
+    db.query(sql, username, (err, results) => {
+      if (err) {
         reject(err)
         return
       }
       resolve(results)
     })
-  }).catch( err =>{
+  }).catch(err => {
     return err
-  })
+  });
   return promise
 }
 

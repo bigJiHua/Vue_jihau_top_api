@@ -5,19 +5,35 @@ const setting = require('../setting')
 
 // 获取文章列表
 exports.article_list = (req, res) => {
-  const sql = `select * from ev_articles where is_delete=0`
-  db.query(sql, (err, results) => {
-    if (err) return res.cc(err)
-    res.status(200).send({
-      status: 200,
-      message: '获取成功',
-      data: results
+  const page = req.query.page
+  if (page === 'all') {
+    const sql = `SELECT * FROM ev_articles where is_delete=0`
+    db.query(sql,parseInt(page),(err, results) => {
+      if (err) return res.cc(err)
+      if(results.length === 0 ) return res.cc('已加载全部数据', 406)
+      res.status(200).send({
+        status: 200,
+        message: '获取成功',
+        data: results
+      })
     })
-  })
+  } else {
+    // const sql = `SELECT * FROM ev_articles where is_delete=0 limit 10 offset ?`
+    const sql = `SELECT * FROM ev_articles where is_delete=0 ORDER BY ev_articles.id DESC limit 10 offset ?`
+    db.query(sql,parseInt(page),(err, results) => {
+      if (err) return res.cc(err)
+      if(results.length === 0 ) return res.cc('已加载全部数据', 406)
+      res.status(200).send({
+        status: 200,
+        message: '获取成功',
+        data: results
+      })
+    })
+  }
 }
 // 获取文章归档
 exports.article_archive = (req, res) => {
-  const sql = `select *from ev_articles where is_delete=0`
+  const sql = `select * from ev_articles where is_delete=0`
   db.query(sql, (err, results) => {
     const newArry = []
     results.forEach((item) =>{
@@ -55,7 +71,7 @@ exports.article_uget = (req, res) => {
   const sql = 'SELECT * FROM ev_articles WHERE username=? AND is_delete=0'
   db.query(sql, user, (err,results) => {
     if (err) return res.cc(err)
-    if (results.length === 0) return res.cc('当前用户没有文章')
+    if (results.length === 0) return res.cc('空空如也，赶快发布属于你的新文章吧！')
     res.status(200).send({
       status: 200,
       message: '获取用户文章成功',
@@ -124,20 +140,6 @@ exports.article_cag = (req,res) => {
     })
   })
 }
-
-
-// 发布文章分类
-exports.article_upd = (req, res) => {
-  const put_data = req.body
-  put_data.pub_date = setting.put_date
-  const sql = `insert into ev_articles set ?`
-  db.query(sql, put_data, (err, results) => {
-    if (err) return res.cc(err)
-    if (results.length === 0) return res.cc('发布文章失败 !')
-    res.cc('发布文章成功！')
-  })
-}
-
 
 // 获取名下图库
 exports.article_image = (req,res) => {
