@@ -2,9 +2,9 @@
 // API端口
 const kuo = 80 // 20907
 // 不进行token验证的子口
-const api = [/^\/data|\/my|\/archives\/|\/public\/|^\/sitemap/]
+// const api = [/^\/data|\/my|\/archives\/|\/public\/|^\/sitemap/]
 // 部署API
-// const api = [/^\/api\/data|\/api\/my|\/api\/archives\/|\/api\/public\/|^\/sitemap/]
+const api = [/^\/api\/data|\/api\/my|\/api\/archives\/|\/api\/public\/|^\/sitemap/]
 // 文件上传路径
 const path = '/www/wwwroot/jihau_top/public/uploads'
 // 文件访问路径

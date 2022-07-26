@@ -58,13 +58,13 @@ const userinfo_Router = require('./router_gp/userinfo')
 const search_Router = require('./router_gp/archives')
 const setting_Router = require('./router_gp/setting')
 
-webapp.use('/article',article_list_router)  // 权限接口
-webapp.use('/users',userinfo_Router)        // 权限接口 用户信息的增删改查
-webapp.use('/setting',setting_Router)       // 权限接口 管理员修改站点信息
-webapp.use('/my', user_login_Router)        // 登录注册 非权限接口
-webapp.use('/data',get_data_Router)         // get数据接口 非权限接口
-webapp.use('/archives',search_Router)       // get文章接口 非权限接口
-webapp.use('/public/uploads', express.static('./public/uploads')) // 静态资源
+webapp.use('/api/article',article_list_router)  // 权限接口
+webapp.use('/api/users',userinfo_Router)        // 权限接口 用户信息的增删改查
+webapp.use('/api/setting',setting_Router)       // 权限接口 管理员修改站点信息
+webapp.use('/api/my', user_login_Router)        // 登录注册 非权限接口
+webapp.use('/api/data',get_data_Router)         // get数据接口 非权限接口
+webapp.use('/api/archives',search_Router)       // get文章接口 非权限接口
+webapp.use('/api/public/uploads', express.static('./public/uploads')) // 静态资源
 
 /* 路由模块 */
 
