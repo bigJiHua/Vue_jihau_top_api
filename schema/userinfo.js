@@ -17,25 +17,25 @@ const username = joi.string().required()
 
 // 用户信息
 exports.cag_UserInfo = {
-  body:{
-    id,
-    birthday,
-    city,
-    email,
-    nickname,
-    sex,
-    user_content,
-    user_pic,
-    username,
-    useridentity
-  }
+    body: {
+        id,
+        birthday,
+        city,
+        email,
+        nickname,
+        sex,
+        user_content,
+        user_pic,
+        username,
+        useridentity
+    }
 }
 
 // 修改密码
 exports.cag_UserPassword = {
-  body: {
-    oldpwd,
-    newpwd,
-    username
-  }
+    body: {
+        oldpwd,
+        newpwd,
+        username
+    }
 }

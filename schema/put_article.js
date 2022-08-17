@@ -6,7 +6,7 @@ const title = joi.string().max(25).required()
 // const cate_id = joi.number().integer().min(1).required()
 const content = joi.string().required().min(1)
 const cover_img = joi.string().allow(null, '')
-const pub_date  = joi.string().max(10)
+const pub_date = joi.string().max(10)
 const lable = joi.string()
 // 定义文章id的验证规则
 const id = joi.number().integer().required()

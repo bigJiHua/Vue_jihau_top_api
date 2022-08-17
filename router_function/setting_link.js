@@ -1,15 +1,15 @@
 const db = require('../database/linkdb')
 const setting = require('../setting')
 
-exports.router_getSetting = (req,res) => {
+exports.router_getSetting = (req, res) => {
     const getValue = req.query.value
     if (getValue === 'Lunbo') {
         const sql = `select 
         ev_setting.set_url,ev_setting.set_difault,ev_setting.set_title,ev_setting.set_change
         from ev_setting where set_name=?`
-        db.query(sql,getValue,(err, results) => {
-            if(err) return res.cc(err)
-            if(results.length === 0 ) return res.cc('什么也没找到', 404)
+        db.query(sql, getValue, (err, results) => {
+            if (err) return res.cc(err)
+            if (results.length === 0) return res.cc('什么也没找到', 404)
             res.status(200).send({
                 status: 200,
                 message: '获取成功',
@@ -18,20 +18,20 @@ exports.router_getSetting = (req,res) => {
         })
     } else if (getValue === 'DevP') {
         const sql = `select * from ev_setting where set_name='DevP'`
-        db.query(sql,getValue,(err, results) => {
-            if(err) return res.cc(err)
-            if(results.length === 0 ) return res.cc('什么也没找到', 404)
+        db.query(sql, getValue, (err, results) => {
+            if (err) return res.cc(err)
+            if (results.length === 0) return res.cc('什么也没找到', 404)
             res.status(200).send({
                 status: 200,
                 message: '获取成功',
                 data: results
             })
         })
-    } else if(getValue === 'Sps') {
+    } else if (getValue === 'Sps') {
         const sql = `select * from ev_setting where set_name='PriceUser'`
-        db.query(sql,getValue,(err, results) => {
-            if(err) return res.cc(err)
-            if(results.length === 0 ) return res.cc('什么也没找到', 404)
+        db.query(sql, getValue, (err, results) => {
+            if (err) return res.cc(err)
+            if (results.length === 0) return res.cc('什么也没找到', 404)
             res.status(200).send({
                 status: 200,
                 message: '获取成功',
@@ -42,14 +42,14 @@ exports.router_getSetting = (req,res) => {
 }
 
 // 后台面板 实现获取 改变 轮播
-exports.router_setLunbo =  (req,res) => {
+exports.router_setLunbo = (req, res) => {
     const getmet = req.body.met
     const getUser = req.body.username
     const useridentity = '管理员'
-    const sql =`select * from ev_users where username=? and useridentity=?`
-    db.query(sql,[getUser,useridentity],async (err, results)=> {
-        if(err) return res.cc(err,500)
-        if(results.length === 0) {
+    const sql = `select * from ev_users where username=? and useridentity=?`
+    db.query(sql, [getUser, useridentity], async (err, results) => {
+        if (err) return res.cc(err, 500)
+        if (results.length === 0) {
             res.status(404).send({
                 status: 404,
                 message: '非管理员禁止操作!'
@@ -67,7 +67,7 @@ exports.router_setLunbo =  (req,res) => {
                 const data = JSON.parse(req.body.data)
                 const id = data.id
                 const sql = `update ev_setting set ? where id=${id}`
-                const state =  await Setting(sql,data)
+                const state = await Setting(sql, data)
                 if (state.affectedRows === 1) {
                     res.status(200).send({
                         status: 200,
@@ -85,14 +85,14 @@ exports.router_setLunbo =  (req,res) => {
 }
 
 // 控制面板 实现获取 改变 发展历程的信息
-exports.router_setDevp = (req,res) => {
+exports.router_setDevp = (req, res) => {
     const getmet = req.body.met
     const getUser = req.body.username
     const useridentity = '管理员'
-    const sql =`select * from ev_users where username=? and useridentity=?`
-    db.query(sql,[getUser,useridentity],async (err, results)=> {
-        if(err) return res.cc(err,500)
-        if(results.length === 0) {
+    const sql = `select * from ev_users where username=? and useridentity=?`
+    db.query(sql, [getUser, useridentity], async (err, results) => {
+        if (err) return res.cc(err, 500)
+        if (results.length === 0) {
             res.status(404).send({
                 status: 404,
                 message: '非管理员禁止操作!'
@@ -108,11 +108,11 @@ exports.router_setDevp = (req,res) => {
                 })
             } else if (getmet === 'cag') {
                 const data = JSON.parse(req.body.data)
-                if ( data.set_time !== '') data.set_time = setting.pub_date
+                if (data.set_time !== '') data.set_time = setting.pub_date
                 data.set_user = getUser
                 const id = data.id
                 const sql = `update ev_setting set ? where id=${id}`
-                const state =  await Setting(sql,data)
+                const state = await Setting(sql, data)
                 if (state.affectedRows === 1) {
                     res.status(200).send({
                         status: 200,
@@ -129,7 +129,7 @@ exports.router_setDevp = (req,res) => {
                 data.set_time = setting.pub_date
                 data.set_user = getUser
                 const sql = 'insert into ev_setting set ?'
-                const state =  await Setting(sql,data)
+                const state = await Setting(sql, data)
                 if (state.affectedRows === 1) {
                     res.status(200).send({
                         status: 200,
@@ -145,7 +145,7 @@ exports.router_setDevp = (req,res) => {
                 const data = JSON.parse(req.body.data)
                 const id = data.id
                 const sql = `delete from ev_setting where id=${id}`
-                const state =  await Setting(sql)
+                const state = await Setting(sql)
                 if (state.affectedRows === 1) {
                     res.status(200).send({
                         status: 200,
@@ -163,14 +163,14 @@ exports.router_setDevp = (req,res) => {
 }
 
 // 控制面板 实现获取 改变 发展历程的信息
-exports.router_setSpsList = (req,res) => {
+exports.router_setSpsList = (req, res) => {
     const getmet = req.body.met
     const getUser = req.body.username
     const useridentity = '管理员'
-    const sql =`select * from ev_users where username=? and useridentity=?`
-    db.query(sql,[getUser,useridentity],async (err, results)=> {
-        if(err) return res.cc(err,500)
-        if(results.length === 0) {
+    const sql = `select * from ev_users where username=? and useridentity=?`
+    db.query(sql, [getUser, useridentity], async (err, results) => {
+        if (err) return res.cc(err, 500)
+        if (results.length === 0) {
             res.status(404).send({
                 status: 404,
                 message: '非管理员禁止操作!'
@@ -186,11 +186,11 @@ exports.router_setSpsList = (req,res) => {
                 })
             } else if (getmet === 'cag') {
                 const data = JSON.parse(req.body.data)
-                if ( data.set_time !== '') data.set_time = setting.pub_date
+                if (data.set_time !== '') data.set_time = setting.pub_date
                 data.set_user = getUser
                 const id = data.id
                 const sql = `update ev_setting set ? where id=${id}`
-                const state =  await Setting(sql,data)
+                const state = await Setting(sql, data)
                 if (state.affectedRows === 1) {
                     res.status(200).send({
                         status: 200,
@@ -207,7 +207,7 @@ exports.router_setSpsList = (req,res) => {
                 data.set_time = setting.pub_date
                 data.set_user = getUser
                 const sql = 'insert into ev_setting set ?'
-                const state =  await Setting(sql,data)
+                const state = await Setting(sql, data)
                 if (state.affectedRows === 1) {
                     res.status(200).send({
                         status: 200,
@@ -223,7 +223,7 @@ exports.router_setSpsList = (req,res) => {
                 const data = JSON.parse(req.body.data)
                 const id = data.id
                 const sql = `delete from ev_setting where id=${id}`
-                const state =  await Setting(sql)
+                const state = await Setting(sql)
                 if (state.affectedRows === 1) {
                     res.status(200).send({
                         status: 200,
@@ -240,11 +240,11 @@ exports.router_setSpsList = (req,res) => {
     })
 }
 
-function Setting(sql,data) {
+function Setting(sql, data) {
     if (data) {
         return new Promise((resolve, reject) => {
-            db.query(sql,data,(err,results)=> {
-                if(err){
+            db.query(sql, data, (err, results) => {
+                if (err) {
                     reject(err)
                     return
                 }
@@ -253,8 +253,8 @@ function Setting(sql,data) {
         })
     } else {
         return new Promise((resolve, reject) => {
-            db.query(sql,(err,results)=> {
-                if(err){
+            db.query(sql, (err, results) => {
+                if (err) {
                     reject(err)
                     return
                 }

@@ -10,20 +10,20 @@ const user_pic = joi.string().allow(null, '')
 const birthday = joi.string().allow(null, '')
 
 exports.user_loginRouter = {
-  body:{
-    username,
-    password
-  }
+    body: {
+        username,
+        password
+    }
 }
 exports.user_regUserRM = {
-  body:{
-    username,
-    password,
-    email,
-    birthday,
-    sex,
-    city,
-    user_content,
-    user_pic
-  }
+    body: {
+        username,
+        password,
+        email,
+        birthday,
+        sex,
+        city,
+        user_content,
+        user_pic
+    }
 }
