@@ -46,17 +46,41 @@ exports.getUserInfo = (req,res) => {
 exports.getUserInfoUN = (req, res) => {
   const UN = req.query.user
   const sql = `select * from ev_users where username=? and state=0`
-  db.query(sql, UN, (err, results) => {
+  db.query(sql, UN, async(err, results) => {
     if (err) return res.cc(err)
     if (results.length === 0)
       return res.status(204).send({
         status: 204,
         message: '数据查找失败 || 无符合条件数据'
       })
+    const data = {}
+    const sqlg =  `select
+    s.title,s.article_id,s.cover_img,s.username,s.content,d.id
+    from ev_userartdata d,ev_articles s
+    where d.article_id = s.article_id
+    and d.goodnum = 1 and d.username=?`
+    const sqls =  `select
+    s.title,s.article_id,s.cover_img,s.username,s.content,d.id
+    from ev_userartdata d,ev_articles s
+    where d.article_id = s.article_id
+    and d.collect = 1 and d.username=?`
+    const sqlc =  `select
+    s.article_id,s.title,s.username,d.comment,d.pub_date,s.cover_img,d.id
+    from ev_usercomment d,ev_articles s
+    where d.article_id = s.article_id
+    and d.username=?`
+    const sqla = `select 
+    * from ev_articles where username =?
+    `
+    data.goodnums = (await doActiveData(sqlg,UN)).length
+    data.collects = (await doActiveData(sqls,UN)).length
+    data.comments = (await doActiveData(sqlc,UN)).length
+    data.articles = (await doActiveData(sqla,UN)).length
+    data.Users = {...results[0], password:''}
     res.send({
       status: 200,
       message: '用户信息数据获取成功！',
-      data: {...results[0], password:''}
+      data: data
     })
   })
 }

@@ -40,6 +40,7 @@ router.get('/?',(req, res) => {
           db.query(sql1,UID,(err,results)=>{
             if(err) return res.cc(err)
             data.comment = results
+            // const user = [...new Set(results.map((word) => word.username))]
             res.status(200).send({
               status: 200,
               message: '获取文章成功',

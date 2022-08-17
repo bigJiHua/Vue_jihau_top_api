@@ -21,6 +21,7 @@ exports.article_list = (req, res) => {
     // const sql = `SELECT * FROM ev_articles where is_delete=0 limit 10 offset ?`
     const sql = `SELECT * FROM ev_articles where is_delete=0 ORDER BY ev_articles.id DESC limit 10 offset ?`
     db.query(sql,parseInt(page),(err, results) => {
+      // console.log(results)
       if (err) return res.cc(err)
       if(results.length === 0 ) return res.cc('已加载全部数据', 406)
       res.status(200).send({
@@ -68,7 +69,9 @@ exports.article_cates = (req, res) => {
 // 查找名下的文章
 exports.article_uget = (req, res) => {
   const user = req.query.username
-  const sql = 'SELECT * FROM ev_articles WHERE username=? AND is_delete=0'
+  const sql = `SELECT
+    article_id,cate_id,id,is_delete,keyword,lable,pub_date,pub_month,state,title,username
+    FROM ev_articles WHERE username=? AND is_delete=0`
   db.query(sql, user, (err,results) => {
     if (err) return res.cc(err)
     if (results.length === 0) return res.cc('空空如也，赶快发布属于你的新文章吧！')
