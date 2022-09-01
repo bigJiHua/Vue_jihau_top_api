@@ -1,13 +1,13 @@
 {
-  "name": "api",
+  "name": "vue_jihau_top_api",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "JiHua",
   "license": "ISC",
   "dependencies": {
     "@escook/express-joi": "^1.1.1",

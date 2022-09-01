@@ -10,7 +10,7 @@ exports.getUserInfo = (req, res) => {
         db.query(sql, user, (err, results) => {
             if (err) return res.cc(err, 404)
             if (results.length === 0) return res.cc('非法用户', 404)
-            let uidti = JSON.parse(JSON.stringify(results))[0].useridentity
+            let uidti = results[0].useridentity
             if (uidti === '管理员') {
                 const sql = `select * from ev_users`
                 db.query(sql, (err, results) => {
@@ -326,9 +326,9 @@ exports.UserActiveData = async (req, res) => {
     from ev_usercomment d,ev_articles s
     where d.article_id = s.article_id
     and d.username=?`
-    data.goodnum = await doActiveData(sqlg, body.user)
-    data.collect = await doActiveData(sqls, body.user)
-    data.comment = await doActiveData(sqlc, body.user)
+    data.goodnum = await doActiveData(sqlg, body.user) // 获取点赞文章和内容
+    data.collect = await doActiveData(sqls, body.user) // 获取收藏
+    data.comment = await doActiveData(sqlc, body.user) // 获取评论
     data.goodnums = data.goodnum.length
     data.collects = data.collect.length
     data.comments = data.comment.length
@@ -340,8 +340,7 @@ exports.UserActiveData = async (req, res) => {
 }
 
 function doActiveData(sql, username) {
-    let promise;
-    promise = new Promise((resolve, reject) => {
+    let promise = new Promise((resolve, reject) => {
         db.query(sql, username, (err, results) => {
             if (err) {
                 reject(err)
