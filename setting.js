@@ -1,12 +1,10 @@
 // APi设置面板
 // API端口
-const kuo = 80 // 20907
-// 不进行token验证的子口
-// const api = [/^\/data|\/my|\/archives\/|\/public\/|^\/sitemap/]
+const kuo = 80
 // 部署API
-const api = [/^\/api\/data|\/api\/my|\/api\/archives\/|\/api\/public\/|^\/sitemap/]
+const api = [/^\/api\/data|\/api\/my|\/api\/archives\/|\/api\/public\/|^\/api\/getmail\/|\/sitemap/]
 // 文件上传路径
-const path = '/www/wwwroot/jihau.top/public/uploads'
+const path = 'jihau.top/public/uploads'
 // 文件访问路径
 const selpath = 'https://jihau.top/api/public/uploads/'
 /*　生成格式化日期 */

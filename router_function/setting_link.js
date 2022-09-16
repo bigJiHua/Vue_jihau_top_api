@@ -50,7 +50,7 @@ exports.router_setLunbo = (req, res) => {
     db.query(sql, [getUser, useridentity], async (err, results) => {
         if (err) return res.cc(err, 500)
         if (results.length === 0) {
-            res.status(404).send({
+            res.status(202).send({
                 status: 404,
                 message: '非管理员禁止操作!'
             })
@@ -93,7 +93,7 @@ exports.router_setDevp = (req, res) => {
     db.query(sql, [getUser, useridentity], async (err, results) => {
         if (err) return res.cc(err, 500)
         if (results.length === 0) {
-            res.status(404).send({
+            res.status(202).send({
                 status: 404,
                 message: '非管理员禁止操作!'
             })
@@ -171,7 +171,7 @@ exports.router_setSpsList = (req, res) => {
     db.query(sql, [getUser, useridentity], async (err, results) => {
         if (err) return res.cc(err, 500)
         if (results.length === 0) {
-            res.status(404).send({
+            res.status(202).send({
                 status: 404,
                 message: '非管理员禁止操作!'
             })

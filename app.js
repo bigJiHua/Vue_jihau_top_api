@@ -5,16 +5,17 @@ const Joi = require('joi')
 const {expressjwt: expressJWT} = require('express-jwt')
 const setting = require('./setting')
 const session = require('express-session')
-// const { SitemapStream, streamToPromise } = require('sitemap')
-// const { createGzip } = require('zlib')
-// const db = require('./database/linkdb')
-// const { Readable } = require('stream')
-// let sitemap
+const bodyParser = require('body-parser')
 
 /* 中间件 */
 webapp.use(cors())
-webapp.use(express.json())
-webapp.use(express.urlencoded({extended: false}))
+webapp.use(bodyParser.json({
+    limit: '50mb' //nodejs 做为服务器，在传输内容或者上传文件时，系统默认大小为100kb,改为10M
+}));
+webapp.use(bodyParser.urlencoded({
+    limit: '50mb', //nodejs 做为服务器，在传输内容或者上传文件时，系统默认大小为100kb,改为10M
+    extended: true
+}));
 webapp.use((req, res, next) => {
     res.cc = function (err, status) {
         if (status === '') {
@@ -55,13 +56,15 @@ const article_list_router = require('./router_gp/article')
 const user_login_Router = require('./router_gp/login')
 const get_data_Router = require('./router_gp/data')
 const userinfo_Router = require('./router_gp/userinfo')
-const search_Router = require('./router_gp/archives')
+const search_Router = require('./router_function/archives')
 const setting_Router = require('./router_gp/setting')
+const user_mail_Router = require('./router_gp/mail')
 
 webapp.use('/api/article', article_list_router)  // 权限接口
 webapp.use('/api/users', userinfo_Router)        // 权限接口 用户信息的增删改查
 webapp.use('/api/setting', setting_Router)       // 权限接口 管理员修改站点信息
-webapp.use('/api/my', user_login_Router)        // 登录注册 非权限接口
+webapp.use('/api/my', user_login_Router)         // 登录注册 非权限接口
+webapp.use('/api/getmail', user_mail_Router)     // 获取验证码 非权限接口
 webapp.use('/api/data', get_data_Router)         // get数据接口 非权限接口
 webapp.use('/api/archives', search_Router)       // get文章接口 非权限接口
 webapp.use('/api/public/uploads', express.static('./public/uploads')) // 静态资源
@@ -72,6 +75,7 @@ webapp.use('/api/public/uploads', express.static('./public/uploads')) // 静态�
 webapp.use((err, req, res) => {
     if (err instanceof Joi.ValidationError) return res.cc(err, 202)
     if (err.name === 'UnauthorizedError') return res.cc('身份认证失败,请登录', 401)
+    if (err.name === 'PayloadTooLargeError') return res.cc('文件过大，请重试', 304)
     return res.cc(err, 202)
 })
 //     监听项目端口，运行时要修改

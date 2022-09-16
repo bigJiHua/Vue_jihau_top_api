@@ -16,6 +16,6 @@ router.get('/action', userinfo_RM.UserActive)
 router.get('/actdata', userinfo_RM.UserActiveData)
 // 用户取消点赞收藏接口
 router.get('/delact', userinfo_RM.UserDelActive)
-// 权限接口， 获取username的数据
+// 权限接口， 获取username的消息数据
 router.get('/?', userinfo_RM.getUserInfoUN)
 module.exports = router

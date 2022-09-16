@@ -135,7 +135,17 @@ exports.cagUserPwd = (req, res) => {
 exports.delUserInfo = (req, res) => {
     const user = req.query.user
     const deluser = req.query.deluser
-    if (user && deluser) {
+    if (user === deluser) {
+        const sql = `update ev_users set state=1 where username=? `
+        db.query(sql, deluser, (err, results) => {
+            if (err) return res.cc(err)
+            if (results.length === 0) return res.cc('注销失败', 403)
+            res.status(200).send({
+                status: 200,
+                message: '注销成功'
+            })
+        })
+    } else if (user && deluser) {
         const sql = `select useridentity from ev_users where username=?`
         db.query(sql, user, (err, results) => {
             if (err) return res.cc(err, 404)
