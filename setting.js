@@ -2,7 +2,7 @@
 // API端口
 const kuo = 80 // 20907
 // 部署API
-const api = [/^\/api\/data|\/api\/my|\/api\/archives\/|\/api\/public\/|^\/api\/getmail\/|\/sitemap/]
+const api = [/^\/api\/data|\/api\/my|\/api\/archives\/|\/api\/public\/|^\/api\/getmail\/|\/sitemap|\/api\/ctrlmenu\/login/]
 // 文件上传路径
 const path = '/www/wwwroot/jihau.top/public/uploads'
 // 文件访问路径

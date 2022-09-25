@@ -68,7 +68,7 @@ webapp.use('/api/getmail', user_mail_Router)     // 获取验证码 非权限接
 webapp.use('/api/data', get_data_Router)         // get数据接口 非权限接口
 webapp.use('/api/archives', search_Router)       // get文章接口 非权限接口
 webapp.use('/api/public/uploads', express.static('./public/uploads')) // 静态资源
-webapp.use('api/ctrlmenu', Ctrl_Router)  // 后台管理面板API接口
+webapp.use('/api/ctrlmenu', Ctrl_Router)  // 后台管理面板API接口
 
 /* 路由模块 */
 
