@@ -10,16 +10,16 @@ const bodyParser = require('body-parser')
 /* 中间件 */
 webapp.use(cors())
 webapp.use(bodyParser.json({
-    limit: '50mb' //nodejs 做为服务器，在传输内容或者上传文件时，系统默认大小为100kb,改为10M
+    limit: '10mb'
 }));
 webapp.use(bodyParser.urlencoded({
-    limit: '50mb', //nodejs 做为服务器，在传输内容或者上传文件时，系统默认大小为100kb,改为10M
+    limit: '10mb',
     extended: true
 }));
 webapp.use((req, res, next) => {
     res.cc = function (err, status) {
         if (status === '') {
-            res.send({
+            res.status(206).send({
                 status: 206,
                 message: err instanceof Error ? err.message : err,
             })
@@ -59,8 +59,8 @@ const userinfo_Router = require('./router_gp/userinfo')
 const search_Router = require('./router_function/archives')
 const setting_Router = require('./router_gp/setting')
 const user_mail_Router = require('./router_gp/mail')
+const Ctrl_Router = require('./Ctrlmenu/router_gp/Ctrlmenu_API')
 
-webapp.use('/api/article', article_list_router)  // 权限接口
 webapp.use('/api/users', userinfo_Router)        // 权限接口 用户信息的增删改查
 webapp.use('/api/setting', setting_Router)       // 权限接口 管理员修改站点信息
 webapp.use('/api/my', user_login_Router)         // 登录注册 非权限接口
@@ -68,6 +68,7 @@ webapp.use('/api/getmail', user_mail_Router)     // 获取验证码 非权限接
 webapp.use('/api/data', get_data_Router)         // get数据接口 非权限接口
 webapp.use('/api/archives', search_Router)       // get文章接口 非权限接口
 webapp.use('/api/public/uploads', express.static('./public/uploads')) // 静态资源
+webapp.use('api/ctrlmenu', Ctrl_Router)  // 后台管理面板API接口
 
 /* 路由模块 */
 

@@ -1,7 +1,7 @@
 const joi = require('joi')
 
 const username = joi.string().min(3).max(15).required() //.alphanum()
-const password = joi.string().pattern(/^[\S]{6,12}$/).required()
+const password = joi.string().pattern(/^[\S]{6,30}$/).required()
 const email = joi.string().email().required()
 const sex = joi.string().allow(null, '')
 const city = joi.string().allow(null, '')

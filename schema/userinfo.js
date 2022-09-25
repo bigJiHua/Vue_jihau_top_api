@@ -21,7 +21,6 @@ exports.cag_UserInfo = {
         id,
         birthday,
         city,
-        email,
         nickname,
         sex,
         user_content,

@@ -54,18 +54,6 @@ exports.article_archive = (req, res) => {
         })
     })
 }
-// 获取文章分类
-exports.article_cates = (req, res) => {
-    const sql = `select * from ev_article_cate`
-    db.query(sql, (err, results) => {
-        if (err) return res.cc(err)
-        res.status(200).send({
-            status: 200,
-            message: '获取成功',
-            data: results,
-        })
-    })
-}
 // 查找名下的文章
 exports.article_uget = (req, res) => {
     const user = req.query.username
