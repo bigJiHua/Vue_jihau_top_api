@@ -1,87 +1,72 @@
-const db = require('../database/linkdb')
+const db = require('../DataBase/linkdb')
 const bcrypt = require('bcryptjs/dist/bcrypt') // 用户信息修改密码加密
 const setting = require('../setting')
+const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
+const ExecuteFunc = require('../Implement/ExecuteFunction')
+
 // 获取用户信息
-exports.getUserInfo = (req, res) => {
-  const user = req.query.user
+exports.getUserInfo = async (req, res) => {
   const n = parseInt(req.query.n)
-  if (user) {
-    const sql = `select useridentity from ev_users where username=?`
-    db.query(sql, user, (err, results) => {
-      if (err) return res.cc(err, 404)
-      if (results.length === 0) return res.cc('非法用户', 404)
-      let uidti = results[0].useridentity
-      if (uidti === '管理员') {
-        const sql = `select * from ev_users`
-        db.query(sql, (err, results) => {
-          if (err) return res.cc(err, 404)
-          if (results.length === 0) return res.cc('用户数据为0', 200)
-          const length = results.length
-          const sql = `SELECT
+  // 获取所有用户数据 Get all user data
+  const GetAllUserDataSql = `select * from ev_users`
+  const GetAllUserData = await ExecuteFunc(GetAllUserDataSql)
+  if (GetAllUserData.length === 0) return res.cc('用户数据为0', 200)
+  const length = GetAllUserData.length
+  // 获取限制5条用户数据 Get 5 user data limits
+  const GetFiveUserDataLimitsSql = `SELECT
           ev_users.id,ev_users.username,ev_users.useridentity,
           ev_users.nickname,ev_users.sex,ev_users.city,ev_users.email,
           ev_users.user_pic,ev_users.user_content,ev_users.birthday,ev_users.state
           FROM ev_users  limit 5 offset ?`
-          db.query(sql, n, (err, results) => {
-            if (err) return res.cc(err)
-            if (results.length === 0) return res.cc('404', 404)
-            res.status(200).send({
-              status: 200,
-              message: '获取用户信息列表成功',
-              data: results,
-              length: length,
-            })
-          })
-        })
-      } else {
-        res.cc('你不是管理员，无法进行此操作', 403)
-      }
-    })
-  } else {
-    return res.cc('非法用户', 404)
-  }
+  const GetFiveUserDataLimits = await ExecuteFuncData(
+    GetFiveUserDataLimitsSql,
+    n
+  )
+  if (GetFiveUserDataLimits.length === 0) return res.cc('数据不能再多了啦！', 204)
+  res.status(200).send({
+    status: 200,
+    message: '获取用户信息列表成功',
+    data: GetFiveUserDataLimits,
+    length: length,
+  })
 }
-
 // 根据用户名查数据
-exports.getUserInfoUN = (req, res) => {
+exports.getUserInfoUN = async (req, res) => {
   const UN = req.query.user
-  const sql = `select * from ev_users where username=? and state=0`
-  db.query(sql, UN, async (err, results) => {
-    if (err) return res.cc(err)
-    // TODO 回调有误
-    if (err === null && results.length === 0) {
-      console.log(1)
-      return res.cc('数据查找失败 || 无符合条件数据', 204)
-    }
-    const data = {}
-    const sqlg = `select
+  const data = {}
+  // 获取用户数据
+  const GetUserDataSql = `select * from ev_users where username=? and state=0`
+  // 查询点赞
+  const sqlg = `select
     s.title,s.article_id,s.cover_img,s.username,s.content,d.id
     from ev_userartdata d,ev_articles s
     where d.article_id = s.article_id
     and d.goodnum = 1 and d.username=?`
-    const sqls = `select
+  // 查询收藏
+  const sqls = `select
     s.title,s.article_id,s.cover_img,s.username,s.content,d.id
     from ev_userartdata d,ev_articles s
     where d.article_id = s.article_id
     and d.collect = 1 and d.username=?`
-    const sqlc = `select
+  // 查询评论
+  const sqlc = `select
     s.article_id,s.title,s.username,d.comment,d.pub_date,s.cover_img,d.id
     from ev_usercomment d,ev_articles s
     where d.article_id = s.article_id
     and d.username=?`
-    const sqla = `select 
+  const sqla = `select 
     * from ev_articles where username =?
     `
-    data.goodnums = (await doActiveData(sqlg, UN)).length
-    data.collects = (await doActiveData(sqls, UN)).length
-    data.comments = (await doActiveData(sqlc, UN)).length
-    data.articles = (await doActiveData(sqla, UN)).length
-    data.Users = { ...results[0], password: '' }
-    res.send({
-      status: 200,
-      message: '用户信息数据获取成功！',
-      data: data,
-    })
+  data.goodnums = (await ExecuteFuncData(sqlg, UN)).length
+  data.collects = (await ExecuteFuncData(sqls, UN)).length
+  data.comments = (await ExecuteFuncData(sqlc, UN)).length
+  data.articles = (await ExecuteFuncData(sqla, UN)).length
+  const GetUserData = await ExecuteFuncData(GetUserDataSql, UN)
+  data.Users = { ...GetUserData[0], password: '' }
+  res.send({
+    status: 200,
+    message: '用户信息数据获取成功！',
+    data: data,
   })
 }
 
