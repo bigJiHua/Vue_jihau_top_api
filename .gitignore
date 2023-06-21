@@ -1,3 +1,7 @@
 /database/
 /public/
 /config.js
+/.vscode
+/.idea
+/node_modules
+/Mail
