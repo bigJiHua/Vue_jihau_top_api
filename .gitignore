@@ -1,14 +1,7 @@
-<<<<<<< HEAD
-/database/
-/public/
+/DataBase
+/public
 /config.js
 /.vscode
 /.idea
 /node_modules
 /Mail
-=======
-/.idea
-/.vscode
-/node_modules
->>>>>>> parent of 029a5f3 (2023年6月20日 日常维护)
-/public
