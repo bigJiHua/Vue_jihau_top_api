@@ -52,7 +52,7 @@ exports.article_id_schema = {
 
 // 图库
 exports.article_getimage = {
-    data: {
+    body: {
         picusername
     }
 }
