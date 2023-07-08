@@ -6,7 +6,6 @@ const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
 
 /*
   article_id: "Y1YZ60"
-  cate_id: 0
   content: "<p>使用Java构建基于Spring的RESTful API"
   lable: "使用Java构建基于Spring的RESTful API"
   pub_date: "2023-06-13"
@@ -83,7 +82,7 @@ exports.article_uget = async (req, res) => {
   const user = req.query.username
   // 查找名下的文章 Get the current user's articles
   const GetTheCurrentUsersArticlesSql = `SELECT
-    article_id,cate_id,id,is_delete,keyword,lable,pub_date,pub_month,state,title,username
+    article_id,id,is_delete,keyword,lable,pub_date,pub_month,state,title,username
     FROM ev_articles WHERE username=? AND is_delete=0`
   const GetTheCurrentUsersArticles = await ExecuteFuncData(
     GetTheCurrentUsersArticlesSql,
@@ -118,14 +117,11 @@ exports.article_put = async (req, res) => {
     CheckIfThereAreDuplicateTiTlesSql,
     put_data.title
   )
-  if (CheckIfThereAreDuplicateTiTles.length !== 0)
-    return res.cc('文章已经被发布过啦！请换一个标题吧!', 204)
-  put_data.state = '已发布'
+  if (CheckIfThereAreDuplicateTiTles.length !== 0) return res.cc('文章已经被发布过啦！请换一个标题吧!', 204)
   // 插入文章 Insert article
   const InsertArticleSql = `insert into ev_articles set ?`
   const InsertArticle = await ExecuteFuncData(InsertArticleSql, put_data)
-  if (InsertArticle.affectedRows !== 1)
-    return res.cc('发布文章失败，请重新再试')
+  if (InsertArticle.affectedRows !== 1)  return res.cc('发布文章失败，请重新再试')
   res.status(200).send({
     status: 200,
     message: '发布文章成功!',

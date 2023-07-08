@@ -10,6 +10,7 @@ const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
 // 用户登录
 exports.user_login_API = async (req, res) => {
   const userinfo = req.body
+  const data = {}
   // 检测用户状态 Check user status
   const CheckUserStatusSql = `select * from ev_users where username=? and state=0 and isact = 1`
   const CheckUserStatus = await ExecuteFuncData(
@@ -29,11 +30,37 @@ exports.user_login_API = async (req, res) => {
   const tokenStr = jwt.sign(user, config.jwtSecretKey, {
     expiresIn: config.expiresIn,
   })
+  // 查询点赞
+  const sqlg = `select
+    s.title,s.article_id,s.cover_img,s.username,s.content,d.id
+    from ev_userartdata d,ev_articles s
+    where d.article_id = s.article_id
+    and d.goodnum = 1 and d.username=?`
+  // 查询收藏
+  const sqls = `select
+    s.title,s.article_id,s.cover_img,s.username,s.content,d.id
+    from ev_userartdata d,ev_articles s
+    where d.article_id = s.article_id
+    and d.collect = 1 and d.username=?`
+  // 查询评论
+  const sqlc = `select
+    s.article_id,s.title,s.username,d.comment,d.pub_date,s.cover_img,d.id
+    from ev_usercomment d,ev_articles s
+    where d.article_id = s.article_id
+    and d.username=?`
+  const sqla = `select 
+    * from ev_articles where username =?
+    `
+  data.goodnums = (await ExecuteFuncData(sqlg, userinfo.username)).length
+  data.collects = (await ExecuteFuncData(sqls, userinfo.username)).length
+  data.comments = (await ExecuteFuncData(sqlc, userinfo.username)).length
+  data.articles = (await ExecuteFuncData(sqla, userinfo.username)).length
+  data.Users = userdata
   res.send({
     status: 200,
     message: '登录成功',
     token: 'Bearer ' + tokenStr,
-    User: userdata,
+    data: data,
   })
 }
 
@@ -60,7 +87,7 @@ exports.regUser = async (req, res) => {
     CheckForDuplicateUsernamesSql,
     userinfo.username
   )
-  if (CheckForDuplicateUsernames.length > 0)
+  if (CheckForDuplicateUsernames.length > 0 )
     return res.cc('用户名被占用，请更换其他用户名！', 202)
   const CheckForDuplicateMailboxes = await ExecuteFuncData(
     CheckForDuplicateMailboxesSql,
@@ -69,14 +96,17 @@ exports.regUser = async (req, res) => {
   if (CheckForDuplicateMailboxes.length > 0)
     return res.cc('邮箱已被注册，请更换其他邮箱！', 202)
   userinfo.password = bcrypt.hashSync(userinfo.password, 10)
+  // 加入唯一用户Id
+  userinfo.user_id = config.generateUserId()
   const NewUsers = await ExecuteFuncData(NewUsersSql, userinfo)
+  console.log(NewUsers)
   if (NewUsers.affectedRows !== 1)
     return res.cc('用户注册失败，请稍后再试', 202)
   const markCaptcha = await ExecuteFuncData(markCaptchaSql, data)
   if (markCaptcha.affectedRows !== 1) {
     return res.status(202).send({
       status: 202,
-      message: `注册成功，验证码植入失败，请联系站长发送${code}验证码给站长`,
+      message: `注册成功，验证码植入失败，请截图并联系站长发送${code}验证码给站长`,
       data: {
         code: code,
         user: userinfo.username,

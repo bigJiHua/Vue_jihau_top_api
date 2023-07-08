@@ -14,7 +14,7 @@ exports.getUserInfo = async (req, res) => {
   // 获取限制5条用户数据 Get 5 user data limits
   const GetFiveUserDataLimitsSql = `SELECT
           ev_users.id,ev_users.username,ev_users.useridentity,
-          ev_users.nickname,ev_users.sex,ev_users.city,ev_users.email,
+          ev_users.user_id,ev_users.sex,ev_users.city,ev_users.email,
           ev_users.user_pic,ev_users.user_content,ev_users.birthday,ev_users.state
           FROM ev_users  limit 5 offset ?`
   const GetFiveUserDataLimits = await ExecuteFuncData(
@@ -129,7 +129,7 @@ exports.delUserInfo = async (req, res) => {
     const VerifyUserIdentity = await ExecuteFuncData(VerifyUserIdentitySql,user)
     if (VerifyUserIdentity.length === 0) return res.cc('非法用户', 404)
     let uidti = JSON.parse(JSON.stringify(VerifyUserIdentity))[0].useridentity
-    if (uidti === '管理员') {
+    if (uidti === 'manager') {
       // 注销用户 logout user
       const logoutUserSql = `update ev_users set state=1 where username=? `
       const logoutUser = await ExecuteFuncData(logoutUserSql,deluser)
@@ -256,7 +256,7 @@ exports.UserActive = async (req, res) => {
           if (changeUserAction.affectedRows !== 1) return res.cc('操作失败')
           res.status(200).send({
             status: 200,
-            message: cledata.message + '成功',
+            message: data.message + '成功',
           })
         }
       }

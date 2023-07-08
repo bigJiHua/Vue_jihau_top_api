@@ -6,6 +6,7 @@
 *  2. 添加Mail密钥
 *  3. 修改上传文件的访问路径 和 app.js静态资源文件访问目录
 *  4. 数据库账密
+*  5. 修改密钥
 * */
 const Port = 80
 // 文件上传路径
@@ -56,6 +57,12 @@ const SelectContent = function (data,limit) {
 const jwtSecretKey = 'jihua is a good man !'
 // token的有效期
 const expiresIn = '10h'
+// 生成用户唯一id
+const { v4: uuid } = require('uuid');
+const generateUserId = () => {
+  const userId = uuid().replace(/-/g,'').substring(0, 15)
+  return userId;
+};
 
 module.exports = {
   Port,
@@ -67,5 +74,6 @@ module.exports = {
   jwtSecretKey,
   expiresIn,
   generateMixed,
-  SelectContent
+  SelectContent,
+  generateUserId
 }

@@ -1,10 +1,8 @@
 /* 这是一个关于文章的【路由模块】 */
-const express = require('express')
-const router = express.Router()
 const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
+const config = require('../config')
 
-// 获取Article 文章API
-router.get('/?', async (req, res) => {
+exports.getArticle = async (req, res)  => {
   const UID = req.query.id
   const data = {
     article: '',
@@ -24,7 +22,9 @@ router.get('/?', async (req, res) => {
         from ev_userartdata where article_id=? and username=?`
   // 查询文章评论 Query article comments
   const QueryArticleCommentsSql = `select * from ev_usercomment  where article_id = ?`
-
+  // 添加阅读数 Update Read Num TODO test 测试阶段 开放此接口 让数据量上涨
+  const UpdateReadNumSql = `UPDATE ev_articles  SET read_num = read_num + 1  WHERE article_id =? AND is_delete = 0; `
+  await ExecuteFuncData(UpdateReadNumSql,UID)
   // 查询文章是否删除 Query whether the article is deleted
   const QueryArticleIsDelete = await ExecuteFuncData(
     QueryArticleIsDeleteSql,
@@ -68,6 +68,16 @@ router.get('/?', async (req, res) => {
       data: data,
     })
   }
-})
-
-module.exports = router
+}
+// 5秒后增加阅读数
+exports.UpdateReadNum = async (req,res) => {
+    const UID = req.query.id
+    // 添加阅读数 Update Read Num
+    const UpdateReadNumSql = `UPDATE ev_articles  SET read_num = read_num + 1  WHERE article_id =? AND is_delete = 0; `
+    const UpdateReadNum =await ExecuteFuncData(UpdateReadNumSql,UID)
+    if (UpdateReadNum.affectedRows === 0) return res.cc('操作错误',205)
+    res.status(200).send({
+      message: '增增增 蒸蒸日上！',
+      status: 200
+    })
+  }

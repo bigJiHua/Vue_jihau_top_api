@@ -37,7 +37,6 @@ CREATE TABLE IF NOT EXISTS `ev_articles` (
   `pub_month` int(5) NOT NULL COMMENT '发布月份',
   `state` varchar(255) NOT NULL COMMENT '文章发布状态',
   `is_delete` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否删除、0正常1删除',
-  `cate_id` int(11) NOT NULL COMMENT '文章分类id',
   `lable` varchar(255) NOT NULL DEFAULT '新文章' COMMENT '标签',
   `keyword` varchar(255) NOT NULL COMMENT '关键词'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='文章表';

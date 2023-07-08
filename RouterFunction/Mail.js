@@ -1,8 +1,9 @@
 const db = require('../DataBase/linkdb')
+const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
 // 检查验证码
 exports.CheckEmail = (req, res) => {
   const username = req.body.user
-  const sql = `select * from ev_users_vercode,ev_users where ev_users_vercode.username=? and ev_users_vercode.is_check=0 and ev_users_vercode.isact = 1`
+  const sql = `select * from ev_users_vercode,ev_users where ev_users_vercode.username=? and ev_users_vercode.is_check=0 `
   db.query(sql, username, (err, results) => {
     if (err) return res.cc(err, 500)
     if (results.length === 0)
