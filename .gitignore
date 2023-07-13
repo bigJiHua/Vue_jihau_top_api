@@ -1,8 +1,6 @@
-/DataBase/linkdb.js
 /public
-/config.js
 /.vscode
 /.idea
 /node_modules
-/Mail/mail.js
+/Mail
 /DataBase
