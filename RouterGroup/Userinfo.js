@@ -4,12 +4,9 @@ const expressJoi = require('@escook/express-joi')
 
 const uif_data_check = require('../Rules/userinfo')
 const userinfo_RM = require('../RouterFunction/Userinfo')
-const {VerifyAdministratorIdentity} = require('../Implement/middleware/VerifyAdministrator-identity')
 const {CheckUserStatus} = require('../Implement/middleware/CheckUserStatus')
 
-router.patch('/cagUser', expressJoi(uif_data_check.cag_UserInfo), (req,res,next) => {
-    VerifyAdministratorIdentity(req,res,next)
-} ,  userinfo_RM.cagUserInfo) // 权限接口， 改
+router.patch('/cagUser', expressJoi(uif_data_check.cag_UserInfo), userinfo_RM.cagUserInfo) // 权限接口， 改用户信息
 router.patch('/cagpwd', expressJoi(uif_data_check.cag_UserPassword), userinfo_RM.cagUserPwd) // 权限接口 改密码
 router.get('/getUinfo', userinfo_RM.getUserInfo)// 权限接口， 获取所有用户列表(管理员)
 router.get('/delUser', userinfo_RM.delUserInfo)  // 权限接口， 删

@@ -1,64 +1,38 @@
 // 导入定义验证规则的模块
 const joi = require('joi')
-
-// 定义 标题、分类Id、内容、发布状态 的验证规则
-const title = joi.string().max(30).required()
-const content = joi.string().required().min(1)
-const cover_img = joi.string().allow(null, '')
-const pub_date = joi.string().max(10)
-const lable = joi.string()
+const {required} = require("joi");
 // 定义文章id的验证规则
-const id = joi.number().integer().required()
-const article_id = joi.string().required()
-const username = joi.string().required()
-const picusername = joi.string().required()
-const keyword = joi.string()
+const id = joi.string().required()
+const key = joi.string().required()
+const article_cate  = joi.string().required()
+const article_id  = joi.string().required()
+const content  = joi.string().required()
+const cover_img  = joi.string().required()
+const keyword  = joi.string().required()
+const lable  = joi.string().required()
+const title  = joi.string().required()
+const username  = joi.string().required()
+const data = joi.string().required()
+const reason = joi.string().min(20).max(400).required()
 
-
-// 验证规则对象 - 发布文章
-exports.article_add_schema = {
-    body: {
-        username,
-        title,
-        content,
-        cover_img,
-        pub_date,
-        lable,
-        keyword,
-    },
-}
-
-
-exports.article_cag_schema = {
-    body: {
-        id,
-        username,
-        title,
-        content,
-        cover_img,
-        lable,
-        keyword,
-        article_id
-    },
-}
-
-exports.article_id_schema = {
-    body: {
+const is_delete  = joi.required()
+const pub_date  = joi.required()
+const pub_month  = joi.required()
+const state  = joi.required()
+const read_num  = joi.required()
+exports.getArticleId = {
+    data:{
         id
     }
 }
-
-
-// 图库
-exports.article_getimage = {
-    body: {
-        picusername
+exports.cagUserArticleDetail = {
+    body:{
+        reason,
+        data
     }
 }
-
-exports.article_delimage = {
-    body: {
-        picusername,
-        id
+exports.SearchKey = {
+    data: {
+        key
     }
 }

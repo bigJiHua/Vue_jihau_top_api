@@ -3,7 +3,6 @@ const db = require('../DataBase/linkdb')
 const config = require('../config')
 const ExecuteFunc = require('../Implement/ExecuteFunction')
 const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
-
 /*
   article_id: "Y1YZ60"
   content: "<p>使用Java构建基于Spring的RESTful API"
@@ -39,10 +38,10 @@ exports.article_list = async (req, res) => {
     // 每次只获取10条文章 Get only 10 articles at a time
     const GetOnly10ArticlesAtATimeSql = `SELECT 
     article_id,content,cover_img,pub_date,title,username
-    FROM ev_articles where is_delete=0 ORDER BY ev_articles.id DESC limit 10 offset ?`
+    FROM ev_articles where is_delete=0 AND state=0 ORDER BY ev_articles.id DESC limit 10 offset ?`
     const GetOnly10ArticlesAtATime = await ExecuteFuncData(GetOnly10ArticlesAtATimeSql, parseInt(page))
     if (GetOnly10ArticlesAtATime.length === 0) {
-      return res.status(204).send({
+      return res.status(200).send({
         status: 204,
         message: '已加载全部数据',
         data:  config.SelectContent(GetOnly10ArticlesAtATime,100),
