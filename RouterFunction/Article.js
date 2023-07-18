@@ -1,5 +1,4 @@
 /* 这是一个关于文章的 路由【处理模块】 */
-const db = require('../DataBase/linkdb')
 const config = require('../config')
 const ExecuteFunc = require('../Implement/ExecuteFunction')
 const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
@@ -54,6 +53,7 @@ exports.article_list = async (req, res) => {
     })
   }
 }
+
 // 获取文章归档 GetArticleArchive
 exports.article_archive = async (req, res) => {
   const GetArticleArchiveSql = `select * from ev_articles where is_delete=0`
@@ -76,6 +76,44 @@ exports.article_archive = async (req, res) => {
     data: newArry,
   })
 }
+
+// 获取通知列表
+exports.getNotifyList = async (req, res) => {
+  // 查询通知 未删除且根据token的username不同来确保 whosee
+  const user = req.query.user
+  const SelectNotifySql = `SELECT title,notify_id from ev_notify where whosee = 0 AND state = 0 AND is_delete = 0`
+  const SelectNotify = await ExecuteFunc(SelectNotifySql)
+  if (SelectNotify.length ===0) return res.cc('暂无通知',409)
+  if (user) {
+    // 检查用户身份
+    const CheckUserSql = `select useridentity from ev_users where username =?`
+    const CheckUser = await ExecuteFuncData(CheckUserSql,user)
+    if (CheckUser[0].useridentity === 'manager') {
+      // 获取所有能看的通知 包括管理员能看的
+      const SelectAllNotifySql = `SELECT * from ev_notify where state = 0 AND is_delete = 0`
+      const SelectAllNotify = await ExecuteFunc(SelectAllNotifySql)
+      if (SelectAllNotify.length ===0) return res.cc('暂无通知',409)
+      res.status(200).send({
+        message: '获取成功',
+        status: 200,
+        data: SelectAllNotify
+      })
+    } else  {
+      res.status(200).send({
+        message: '获取成功',
+        status: 200,
+        data: SelectNotify
+      })
+    }
+  } else  {
+    res.status(200).send({
+      message: '获取成功',
+      status: 200,
+      data: SelectNotify
+    })
+  }
+}
+
 // 查找名下的文章
 exports.article_uget = async (req, res) => {
   const user = req.query.username
@@ -95,6 +133,7 @@ exports.article_uget = async (req, res) => {
     data: GetTheCurrentUsersArticles,
   })
 }
+
 // 发布文章
 exports.article_put = async (req, res) => {
   const put_data = req.body
@@ -127,6 +166,7 @@ exports.article_put = async (req, res) => {
     article: UID,
   })
 }
+
 // 删除文章
 exports.article_del = async (req, res) => {
   // 删除文章 delete article
@@ -139,6 +179,7 @@ exports.article_del = async (req, res) => {
     message: '删除成功!',
   })
 }
+
 // 更改文章
 exports.article_cag = async (req, res) => {
   const username = req.body.username
@@ -165,6 +206,7 @@ exports.article_cag = async (req, res) => {
     message: '文章更新成功',
   })
 }
+
 // 获取名下图库
 exports.article_image = async (req, res) => {
   const username = req.body.picusername
@@ -179,6 +221,7 @@ exports.article_image = async (req, res) => {
     data: getGallery,
   })
 }
+
 // 新增名下图库照片
 exports.article_upimage = async (req, res) => {
   const path = config.selpath + req.file.originalname
@@ -201,6 +244,7 @@ exports.article_upimage = async (req, res) => {
     return res.cc('今日文件上传条数已达到最大值！', 204)
   }
 }
+
 // 删除名下图库照片
 exports.article_imagedel = async (req, res) => {
   const body = req.body
@@ -225,3 +269,4 @@ exports.article_imagedel = async (req, res) => {
     message: '删除成功',
   })
 }
+

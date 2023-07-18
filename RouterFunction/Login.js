@@ -1,10 +1,8 @@
-const db = require('../DataBase/linkdb')
 const bcrypt = require('bcryptjs/dist/bcrypt')
 // 导入生成token 处理模块
 const jwt = require('jsonwebtoken')
 const config = require('../config')
 const { regUserMail } = require('../Mail/mail')
-const ExecuteFunc = require('../Implement/ExecuteFunction')
 const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
 
 // 用户登录
@@ -99,7 +97,6 @@ exports.regUser = async (req, res) => {
   // 加入唯一用户Id
   userinfo.user_id = config.generateUserId()
   const NewUsers = await ExecuteFuncData(NewUsersSql, userinfo)
-  console.log(NewUsers)
   if (NewUsers.affectedRows !== 1)
     return res.cc('用户注册失败，请稍后再试', 202)
   const markCaptcha = await ExecuteFuncData(markCaptchaSql, data)

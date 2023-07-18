@@ -11,7 +11,9 @@ const ArchiveRules = require('../Rules/Archives')
 
 router.get('/list', article_function.article_list)  // 首页列表
 router.get('/archive', article_function.article_archive) // 文章归档
+router.get('/notify',article_function.getNotifyList) // 获取通知展示列表
 router.get('/Setting', getSetting_function.router_getSetting) // 首页设置信息
 router.get('/article',expressJoi(ArchiveRules.getArticleId), get_archives_Router.getArticle)  // 请求获得文章数据
-router.get('/UpreadNum',expressJoi(ArchiveRules.getArticleId),get_archives_Router.UpdateReadNum)
+router.get('/page',expressJoi(ArchiveRules.getArticleId), get_archives_Router.getPage)  // 请求获得文章数据
+router.get('/UpreadNum',expressJoi(ArchiveRules.getArticleId),get_archives_Router.UpdateReadNum) // 增加阅读数
 module.exports = router

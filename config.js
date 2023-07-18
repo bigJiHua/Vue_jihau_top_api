@@ -57,11 +57,16 @@ const SelectContent = function (data,limit) {
 const jwtSecretKey = 'jihua is a good man !'
 // token的有效期
 const expiresIn = '10h'
+
+const options = {
+  secret: jwtSecretKey,
+  algorithms: ['HS256'],
+  credentialsRequired: true
+}
 // 生成用户唯一id
 const { v4: uuid } = require('uuid');
 const generateUserId = () => {
-  const userId = uuid().replace(/-/g,'').substring(0, 15)
-  return userId;
+  return uuid().replace(/-/g,'').substring(0, 6)
 };
 
 module.exports = {
@@ -75,5 +80,6 @@ module.exports = {
   expiresIn,
   generateMixed,
   SelectContent,
-  generateUserId
+  generateUserId,
+  options
 }

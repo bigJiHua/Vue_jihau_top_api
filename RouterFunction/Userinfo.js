@@ -73,11 +73,12 @@ exports.getUserInfoUN = async (req, res) => {
 exports.cagUserInfo = async (req, res) => {
   const body = req.body
   // 校验用户ID Verify User ID
-  const VerifyUserIDSql = `select * from ev_users where id=?`
+  const VerifyUserIDSql = `select * from ev_users where id=? AND state =0 AND isact = 1`
   // 更新用户信息 update user information
   const updateUserInformationSql = `update ev_users set ? where id=?`
   const VerifyUserID = await ExecuteFuncData(VerifyUserIDSql,body.id)
-  if (VerifyUserID.length !== 1) return res.cc('非法id ！')
+  if (VerifyUserID.length !== 1) return res.cc('非法id,错误请求 ！')
+  // if (VerifyUserID.useridentity !== body.useridentity) return res.cc('警告非法修改用户身份！',404)
   const updateUserInformation = await ExecuteFuncData(updateUserInformationSql, [body, body.id])
   if (updateUserInformation.affectedRows !== 1) return res.cc('更新用户数据失败')
   res.status(200).send({

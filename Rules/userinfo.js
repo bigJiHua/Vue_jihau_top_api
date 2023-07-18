@@ -25,8 +25,7 @@ exports.cag_UserInfo = {
         sex,
         user_content,
         user_pic,
-        username,
-        useridentity
+        username
     }
 }
 
