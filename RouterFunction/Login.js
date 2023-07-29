@@ -96,6 +96,8 @@ exports.regUser = async (req, res) => {
   userinfo.password = bcrypt.hashSync(userinfo.password, 10)
   // 加入唯一用户Id
   userinfo.user_id = config.generateUserId()
+  // 插入注册时间戳
+  userinfo.registerDate	=  new Date().getTime()
   const NewUsers = await ExecuteFuncData(NewUsersSql, userinfo)
   if (NewUsers.affectedRows !== 1)
     return res.cc('用户注册失败，请稍后再试', 202)

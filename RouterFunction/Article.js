@@ -81,7 +81,7 @@ exports.article_archive = async (req, res) => {
 exports.getNotifyList = async (req, res) => {
   // 查询通知 未删除且根据token的username不同来确保 whosee
   const user = req.query.user
-  const SelectNotifySql = `SELECT title,notify_id from ev_notify where whosee = 0 AND state = 0 AND is_delete = 0`
+  const SelectNotifySql = `SELECT title,notify_id,pub_date from ev_notify where whosee = 0 AND state = 0 AND is_delete = 0`
   const SelectNotify = await ExecuteFunc(SelectNotifySql)
   if (SelectNotify.length ===0) return res.cc('暂无通知',409)
   if (user) {
@@ -117,9 +117,10 @@ exports.getNotifyList = async (req, res) => {
 // 查找名下的文章
 exports.article_uget = async (req, res) => {
   const user = req.query.username
+  if (!user) return res.cc('参数错误',404)
   // 查找名下的文章 Get the current user's articles
   const GetTheCurrentUsersArticlesSql = `SELECT
-    article_id,id,is_delete,keyword,lable,pub_date,pub_month,state,title,username
+    article_id,id,is_delete,keyword,lable,pub_date,pub_month,state,title,username,read_num
     FROM ev_articles WHERE username=? AND is_delete=0`
   const GetTheCurrentUsersArticles = await ExecuteFuncData(
     GetTheCurrentUsersArticlesSql,

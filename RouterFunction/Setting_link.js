@@ -85,7 +85,7 @@ exports.router_setLunbo = async (req, res) => {
 
 // 控制面板 实现获取 改变 发展历程的信息
 exports.router_setDevp = async (req, res) => {
-  const getmet = req.body.met
+  const getmet = req.body.met // 执行方法
   const getUser = req.body.username
   if (getmet === 'get') {
     const sql = `select * from ev_setting where set_name='DevP'`

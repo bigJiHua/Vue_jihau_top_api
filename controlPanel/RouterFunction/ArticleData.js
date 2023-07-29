@@ -35,7 +35,7 @@ exports.SelectData = async (req, res) => {
     if (GetOnly10ArticlesAtATime.length === 0) {
         return res.send({
             status: 204,
-            message: '已加载全部数据',
+            message: '暂无最新数据',
             data: config.SelectContent(GetOnly10ArticlesAtATime, 30),
             totalNum: totalCount
         });
@@ -230,6 +230,7 @@ exports.cagUAData= async (req, res) => {
     }
     await UpdateNumAndData(decryptedData,username,tableName,tablevalue,tableId,res)
 }
+
 // 复用函数，更新 修改数 以及复写源数据
 async function UpdateNumAndData (decryptedData,username,tableName,tablevalue,tableId,res) {
     // 增加修改次数
@@ -267,20 +268,34 @@ exports.searchArticle = async (req,res) => {
     let stateCondition = ''; // 状态条件
     let SelectId = '' // 索引ID
     // 根据 type 设置表名和状态条件
-    if (GetType === 'article') {
-        tableName = 'ev_articles';
-        stateCondition = ' AND state = 0 AND is_delete = 0';
-        SelectId= 'article_id'
-    } else if (GetType === 'notify') {
-        tableName = 'ev_notify';
-        stateCondition = ' AND state = 0 AND is_delete = 0';
-        SelectId= 'notify_id'
-    } else if (GetType === 'wait_notify') {
-        tableName = 'ev_notify';
-        stateCondition = ' AND state = 1 AND is_delete = 0';
-        SelectId= 'notify_id'
-    } else {
-        return res.cc('Key not found', 404)
+    switch (GetType) {
+        case 'article':
+            tableName = 'ev_articles';
+            stateCondition = ' AND state = 0 AND is_delete = 0';
+            SelectId = 'article_id';
+            break;
+        case 'notify':
+            tableName = 'ev_notify';
+            stateCondition = ' AND state = 0 AND is_delete = 0';
+            SelectId = 'notify_id';
+            break;
+        case 'wait_notify':
+            tableName = 'ev_notify';
+            stateCondition = ' AND state = 1 AND is_delete = 0';
+            SelectId = 'notify_id';
+            break;
+        case 'article_delete':
+            tableName = 'ev_articles';
+            stateCondition = ' AND is_delete = 1';
+            SelectId = 'article_id';
+            break;
+        case 'notify_delete':
+            tableName = 'ev_notify';
+            stateCondition = ' AND is_delete = 1';
+            SelectId = 'notify_id';
+            break;
+        default:
+            return res.cc('Key not found', 404);
     }
     if (key.trim() === '') return res.cc('Key not found', 404)
     // 过滤后的关键词
@@ -338,6 +353,73 @@ exports.postNotify = async (req, res) => {
             status: 200,
             message: '发布通知成功!',
             article: put_data.notify_id,
+        })
+    }
+}
+
+// 获取和设置回收站 方法
+exports.getOrCageRecycle = async (req,res) =>{
+    // type取决请求方式，cagid取决操作对象id/搜索id action取决采取的行动为恢复还是彻底删除
+    const {cagid,type,action} = req.query
+    if (!action && !type) return res.cc('操作错误',404)
+    let CheckResourceExists = []
+    let tableName = ''
+    let tableId = ''
+    switch (type) {
+        case 'article': {
+            tableName = 'ev_articles'
+            tableId = 'article_id'
+        } break;
+        case 'notify': {
+            tableName = 'ev_notify'
+            tableId = 'notify_id'
+        } break;
+        default:
+            return res.cc('参数错误',404)
+    }
+    if (cagid) {
+        // 校验是否还存在
+        const CheckResourceExistsSql = `SELECT * from ${tableName} where ${tableId} =? AND is_delete = 1`
+        CheckResourceExists = await ExecuteFuncData(CheckResourceExistsSql,cagid)
+    }
+    if (action === 'get') {
+        // 从ev_artictes // ev_notify表中获取删除的数据进行融合
+        const SelectDataSql = `SELECT * from ${tableName} where is_delete = 1`
+        const SelectData = await ExecuteFunc(SelectDataSql)
+        res.status(200).send({
+            message:'获取成功',
+            status: 200,
+            data: config.SelectContent(SelectData,30)
+        })
+    } else if (action === 'recover') {
+        if (CheckResourceExists.length===0) return res.cc('已恢复！请勿重复操作',409)
+        const recoverData = CheckResourceExists[0]
+        recoverData.is_delete = 0
+        // 恢复
+        const resoureRecoverSql =  `UPDATE ${tableName} SET ? where ${tableId} = ?`
+        const resoureRecover = await ExecuteFuncData(resoureRecoverSql,[recoverData,cagid])
+        if (resoureRecover.affectedRows !== 1) return res.cc('操作失败',404)
+        res.status(200).send({
+            message: '恢复成功!',
+            status: 200
+        })
+    } else if (action === 'getDetail') {
+        if (CheckResourceExists.length === 0) return res.cc('数据空空',404)
+        res.status(200).send({
+            message: '获取成功!',
+            status: 200,
+            data: CheckResourceExists[0]
+        })
+    } else if (action === 'delete' ) {
+        const deleteDataId = CheckResourceExists[0][tableId]
+        const deleteId = CheckResourceExists[0].id
+        // 执行DELETE语句彻底删除文章
+        const deletePageDataSql = `DELETE from ${tableName} where id = ? AND ${tableId} = ?`
+        const deletePageData = await ExecuteFuncData(deletePageDataSql,[deleteId,deleteDataId])
+        if (deletePageData.affectedRows !== 1) return res.cc('删除失败',404)
+        res.status(200).send({
+            message: '删除成功！',
+            status: 200
         })
     }
 }

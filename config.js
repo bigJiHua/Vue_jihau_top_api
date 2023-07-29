@@ -8,7 +8,7 @@
 *  4. 数据库账密
 *  5. 修改密钥
 * */
-const Port = 80
+const Port = 666
 // 文件上传路径
 const path = './public/uploads'
 // 文件访问路径
