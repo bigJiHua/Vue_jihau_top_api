@@ -11,6 +11,6 @@ const db = mysql.createPool({
   host: '127.0.0.1',
   user: 'root',
   password: '',
-  database: 'my_db_01'
+  database: 'my_db_01',
 })
 module.exports = db

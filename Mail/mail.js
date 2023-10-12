@@ -1,24 +1,24 @@
 const nodemailer = require('nodemailer')
 // sendMail function 注册验证
 async function regUserMail(mail, content, user) {
-    let transporter = nodemailer.createTransport({
-        host: 'smtp.qq.com', // 默认是这个
-        port: 465,
-        secure: true,
-        auth: {
-            user: '', // 发送邮箱
-            pass: '', // 发送密钥
-        },
-    })
-    let info = await transporter.sendMail({
-        // 发送方的邮箱地址
-        from: '', // 发送邮箱
-        to: mail, // 对方邮箱
-        // cc         : ''  //抄送 用于多人邮件
-        // bcc      : ''    //密送
-        subject: 'JiHau.top网站账户激活验证码',
-        text: `您的注册验证码为：${content},请谨慎保管`,
-        html: `
+  let transporter = nodemailer.createTransport({
+    host: 'smtp.qq.com', // 默认是这个
+    port: 465,
+    secure: true,
+    auth: {
+      user: '', // 发送邮箱
+      pass: '', // 发送密钥
+    },
+  })
+  let info = await transporter.sendMail({
+    // 发送方的邮箱地址
+    from: '', // 发送邮箱
+    to: mail, // 对方邮箱
+    // cc         : ''  //抄送 用于多人邮件
+    // bcc      : ''    //密送
+    subject: 'JiHau.top网站账户激活验证码',
+    text: `您的注册验证码为：${content},请谨慎保管`,
+    html: `
             <head>
             <base target="_blank" />
             <style type="text/css">::-webkit-scrollbar{ display: none; }</style>
@@ -48,7 +48,9 @@ async function regUserMail(mail, content, user) {
                             <div style="line-height:1.5;font-size:14px;margin-bottom:25px;color:#4d4d4d;">
                                 <strong style="display:block;margin-bottom:15px;">尊敬的用户：<span style="color:#f60;font-size: 16px;"> ${user} </span>您好！</strong>
                                 <strong style="display:block;margin-bottom:15px;">
-                                    您正在进行<span style="color: red"> ${user} 账号激活</span>操作，请在邮箱中点击<a href="https://jihau.top/checkVer?code=${content}&user=${user}" style="color:red;font-size:1.5rem">Link</a>以激活登录。
+                                    您正在进行<span style="color: red"> ${user} 账号激活</span>操作，请在邮箱中点击<a href="https://jihau.top/checkVer?code=${content}&user=${user}" style="color:red;font-size:1.5rem">Link</a>或者点击
+                                    <a href="https://jihau.top/checkVer/${content}/${user}" style="color:red;font-size:1.5rem">elseLink</a>
+                                    以激活登录。
                                 </strong>
                             </div>
                             <div style="margin-bottom:30px;">
@@ -74,9 +76,9 @@ async function regUserMail(mail, content, user) {
             </table>
             </body>
         `,
-    })
+  })
 }
 
 module.exports = {
-    regUserMail,
+  regUserMail,
 }

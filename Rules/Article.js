@@ -14,51 +14,48 @@ const username = joi.string().required()
 const picusername = joi.string().required()
 const keyword = joi.string()
 
-
 // 验证规则对象 - 发布文章
 exports.article_add_schema = {
-    body: {
-        username,
-        title,
-        content,
-        cover_img,
-        pub_date,
-        lable,
-        keyword,
-    },
+  body: {
+    username,
+    title,
+    content,
+    cover_img,
+    pub_date,
+    lable,
+    keyword,
+  },
 }
 
-
 exports.article_cag_schema = {
-    body: {
-        id,
-        username,
-        title,
-        content,
-        cover_img,
-        lable,
-        keyword,
-        article_id
-    },
+  body: {
+    id,
+    username,
+    title,
+    content,
+    cover_img,
+    lable,
+    keyword,
+    article_id,
+  },
 }
 
 exports.article_id_schema = {
-    body: {
-        id
-    }
+  body: {
+    id,
+  },
 }
-
 
 // 图库
 exports.article_getimage = {
-    body: {
-        picusername
-    }
+  body: {
+    picusername,
+  },
 }
 
 exports.article_delimage = {
-    body: {
-        picusername,
-        id
-    }
+  body: {
+    picusername,
+    id,
+  },
 }

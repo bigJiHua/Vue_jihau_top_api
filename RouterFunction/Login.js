@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken')
 const config = require('../config')
 const { regUserMail } = require('../Mail/mail')
 const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
+const { verifyToken } = require('../Implement/middleware/CheckUserMiddleware')
+const { setUserLoginLog } = require('../Implement/ExecuteUserLogData')
 
 // 用户登录
 exports.user_login_API = async (req, res) => {
@@ -11,23 +13,42 @@ exports.user_login_API = async (req, res) => {
   const data = {}
   // 检测用户状态 Check user status
   const CheckUserStatusSql = `select * from ev_users where username=? and state=0 and isact = 1`
-  const CheckUserStatus = await ExecuteFuncData(
-    CheckUserStatusSql,
-    userinfo.username
-  )
-  if (CheckUserStatus.length !== 1)
+  const CheckUserStatus = await ExecuteFuncData(CheckUserStatusSql, userinfo.username)
+  if (CheckUserStatus.length !== 1) {
+    // 执行log
+    await setUserLoginLog(req, {
+      user_id: userinfo.username,
+      token: '',
+      status: 404,
+      err_message: '未知账号/账号未激活',
+    })
     return res.cc('登录失败 账号未激活或已经被注销！', 202)
-  const compareResult = bcrypt.compareSync(
-    userinfo.password,
-    CheckUserStatus[0].password
-  )
-  if (!compareResult) return res.cc('登录失败 密码错误 !', 202)
-  const user = { ...CheckUserStatus[0], password: '', user_pic: '' }
-  const userdata = { ...CheckUserStatus[0], password: '' }
-  // 对用户的信息进行加密生成加密后的token                             token有效期
-  const tokenStr = jwt.sign(user, config.jwtSecretKey, {
-    expiresIn: config.expiresIn,
-  })
+  }
+  // 校验密码
+  const compareResult = bcrypt.compareSync(userinfo.password, CheckUserStatus[0].password)
+  if (!compareResult) {
+    // // 执行log
+    await setUserLoginLog(req, {
+      user_id: userinfo.username,
+      token: '',
+      status: 2,
+      err_message: '密码错误',
+    })
+    return res.cc('登录失败 密码错误 !', 202)
+  }
+  // token
+  let tokenStr = ''
+  const SelectUserLogDataSql = `SELECT token FROM ev_login_log WHERE user_id = ? AND (UNIX_TIMESTAMP() - 1000 - login_time) / 3600 < 23;`
+  const SelectUserLogData = await ExecuteFuncData(SelectUserLogDataSql, CheckUserStatus[0].user_id)
+  // 校验历史token是否可用
+  if (SelectUserLogData[0] !== undefined && (await verifyToken(SelectUserLogData[0].token))) {
+    tokenStr = SelectUserLogData[0].token
+  } else {
+    // 如果密码没错的话 开始准备数据
+    const user = { ...CheckUserStatus[0], password: '', user_pic: '' }
+    // 对用户的信息进行加密生成加密后的token                             token有效期
+    tokenStr = 'Bearer ' + jwt.sign(user, config.jwtSecretKey, { expiresIn: config.expiresIn })
+  }
   // 查询点赞
   const sqlg = `select
     s.title,s.article_id,s.cover_img,s.username,s.content,d.id
@@ -46,19 +67,23 @@ exports.user_login_API = async (req, res) => {
     from ev_usercomment d,ev_articles s
     where d.article_id = s.article_id
     and d.username=?`
-  const sqla = `select 
-    * from ev_articles where username =?
-    `
+  const sqla = `select  * from ev_articles where username =?  `
   data.goodnums = (await ExecuteFuncData(sqlg, userinfo.username)).length
   data.collects = (await ExecuteFuncData(sqls, userinfo.username)).length
   data.comments = (await ExecuteFuncData(sqlc, userinfo.username)).length
   data.articles = (await ExecuteFuncData(sqla, userinfo.username)).length
-  data.Users = userdata
+  data.Users = { ...CheckUserStatus[0], password: '' }
   res.send({
     status: 200,
     message: '登录成功',
-    token: 'Bearer ' + tokenStr,
+    token: tokenStr,
     data: data,
+  })
+  await setUserLoginLog(req, {
+    user_id: CheckUserStatus[0].user_id,
+    token: tokenStr,
+    status: 0,
+    err_message: '成功登录',
   })
 }
 
@@ -67,8 +92,7 @@ exports.regUser = async (req, res) => {
   const userinfo = req.body
   const code = config.generateMixed(6)
   // 检测用户名是否重复 Check for duplicate usernames
-  const CheckForDuplicateUsernamesSql =
-    'select * from ev_users where username=?'
+  const CheckForDuplicateUsernamesSql = 'select * from ev_users where username=?'
   // 检测邮箱是否重复 Check for duplicate mailboxes
   const CheckForDuplicateMailboxesSql = 'select * from ev_users where email=?'
   // 插入用户 New users
@@ -81,26 +105,27 @@ exports.regUser = async (req, res) => {
     code: code,
     time: config.pub_date,
   }
+  // 检查是否存在该用户
   const CheckForDuplicateUsernames = await ExecuteFuncData(
     CheckForDuplicateUsernamesSql,
-    userinfo.username
+    userinfo.username,
   )
-  if (CheckForDuplicateUsernames.length > 0 )
-    return res.cc('用户名被占用，请更换其他用户名！', 202)
+  if (CheckForDuplicateUsernames.length > 0) return res.cc('用户名被占用，请更换其他用户名！', 202)
   const CheckForDuplicateMailboxes = await ExecuteFuncData(
     CheckForDuplicateMailboxesSql,
-    userinfo.email
+    userinfo.email,
   )
-  if (CheckForDuplicateMailboxes.length > 0)
-    return res.cc('邮箱已被注册，请更换其他邮箱！', 202)
+  if (CheckForDuplicateMailboxes.length > 0) return res.cc('邮箱已被注册，请更换其他邮箱！', 202)
   userinfo.password = bcrypt.hashSync(userinfo.password, 10)
   // 加入唯一用户Id
-  userinfo.user_id = config.generateUserId()
+  userinfo.user_id = config.generateUserId(6)
   // 插入注册时间戳
-  userinfo.registerDate	=  new Date().getTime()
+  userinfo.registerDate = new Date().getTime()
   const NewUsers = await ExecuteFuncData(NewUsersSql, userinfo)
-  if (NewUsers.affectedRows !== 1)
-    return res.cc('用户注册失败，请稍后再试', 202)
+  // 在权限表插入用户权限
+  const insertNewUsersPowerSql = `INSERT INTO ev_userpower (username,user_id) SELECT username,user_id FROM ev_users WHERE username = ?`
+  await ExecuteFuncData(insertNewUsersPowerSql, userinfo.username)
+  if (NewUsers.affectedRows !== 1) return res.cc('用户注册失败，请稍后再试', 202)
   const markCaptcha = await ExecuteFuncData(markCaptchaSql, data)
   if (markCaptcha.affectedRows !== 1) {
     return res.status(202).send({

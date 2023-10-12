@@ -7,67 +7,68 @@ const action = joi.string()
 const key = joi.string().required()
 const Num = joi.number().required()
 const type = joi.string().required()
-const content  = joi.string().required()
-const keyword  = joi.string().required()
-const lable  = joi.string().required()
-const title  = joi.string().required()
+const content = joi.string().required()
+const keyword = joi.string().required()
+const lable = joi.string().required()
+const title = joi.string().required()
 const data = joi.string().required()
 const reason = joi.string().min(1).max(250).required()
 
-const is_delete  = joi.required()
-const pub_date  = joi.required()
-const whosee  = joi.number()
-const state  = joi.number()
-const read_num  = joi.required()
+const is_delete = joi.required()
+const pub_date = joi.required()
+const whosee = joi.number()
+const state = joi.number()
+const read_num = joi.required()
 // 统一获取数据列表
 exports.getData = {
-    data: {
-        Num,
-        type
-    }
+  data: {
+    Num,
+    type,
+  },
 }
 
 exports.getDetail = {
-    data: {
-        id,
-        type
-    }
+  data: {
+    id,
+    type,
+  },
 }
 
 exports.getArticleId = {
-    data:{
-        id
-    }
+  data: {
+    id,
+  },
 }
 exports.cagUserArticleDetail = {
-    body:{
-        reason,
-        data,
-        type
-    }
+  body: {
+    reason,
+    data,
+    type,
+  },
 }
 exports.SearchKey = {
-    data: {
-        key
-    }
+  data: {
+    key,
+    type,
+  },
 }
 exports.postNotify = {
-    body:{
-        title,
-        content,
-        lable,
-        keyword,
-        whosee,
-        state,
-    },
-    data: {
-        id
-    }
+  body: {
+    title,
+    content,
+    lable,
+    keyword,
+    whosee,
+    state,
+  },
+  data: {
+    id,
+  },
 }
 exports.getOrCageRecycle = {
-    data: {
-        cagid,
-        type,
-        action
-    }
+  data: {
+    cagid,
+    type,
+    action,
+  },
 }

@@ -10,10 +10,7 @@ exports.router_getSetting = async (req, res) => {
     const GetSetCarouselOptionsSql = `select 
         ev_setting.set_url,ev_setting.set_difault,ev_setting.set_title,ev_setting.set_change
         from ev_setting where set_name=?`
-    const GetSetCarouselOptions = await ExecuteFuncData(
-      GetSetCarouselOptionsSql,
-      getValue
-    )
+    const GetSetCarouselOptions = await ExecuteFuncData(GetSetCarouselOptionsSql, getValue)
     if (GetSetCarouselOptions.length === 0) return res.cc('什么也没找到', 404)
     res.status(200).send({
       status: 200,
@@ -23,11 +20,8 @@ exports.router_getSetting = async (req, res) => {
   } else if (getValue === 'DevP') {
     // 获取设置发展历史选项 GetSetDevelopmentHistoryOptions
     const GetSetDevelopmentHistoryOptionsSql = `select * from ev_setting where set_name='DevP'`
-    const GetSetDevelopmentHistoryOptions = await ExecuteFunc(
-      GetSetDevelopmentHistoryOptionsSql
-    )
-    if (GetSetDevelopmentHistoryOptions.length === 0)
-      return res.cc('什么也没找到', 404)
+    const GetSetDevelopmentHistoryOptions = await ExecuteFunc(GetSetDevelopmentHistoryOptionsSql)
+    if (GetSetDevelopmentHistoryOptions.length === 0) return res.cc('什么也没找到', 404)
     res.status(200).send({
       status: 200,
       message: '获取成功',
@@ -36,9 +30,7 @@ exports.router_getSetting = async (req, res) => {
   } else if (getValue === 'Sps') {
     // 获取设置友联选项  Get Settings Union Options
     const GetSettingsUnionOptionsSql = `select * from ev_setting where set_name='PriceUser'`
-    const GetSettingsUnionOptions = await ExecuteFunc(
-      GetSettingsUnionOptionsSql
-    )
+    const GetSettingsUnionOptions = await ExecuteFunc(GetSettingsUnionOptionsSql)
     if (GetSettingsUnionOptions.length === 0) return res.cc('什么也没找到', 404)
     res.status(200).send({
       status: 200,
@@ -65,10 +57,7 @@ exports.router_setLunbo = async (req, res) => {
     const id = data.id
     // 更新轮播图设置 Update carousel settings
     const UpdateCarouselSettingsSql = `update ev_setting set ? where id=${id}`
-    const UpdateCarouselSettings = await ExecuteFuncData(
-      UpdateCarouselSettingsSql,
-      data
-    )
+    const UpdateCarouselSettings = await ExecuteFuncData(UpdateCarouselSettingsSql, data)
     if (UpdateCarouselSettings.affectedRows === 1) {
       res.status(200).send({
         status: 200,

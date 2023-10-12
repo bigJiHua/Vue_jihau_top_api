@@ -6,8 +6,7 @@ exports.CheckEmail = (req, res) => {
   const sql = `select * from ev_users_vercode,ev_users where ev_users_vercode.username=? and ev_users_vercode.is_check=0 `
   db.query(sql, username, (err, results) => {
     if (err) return res.cc(err, 500)
-    if (results.length === 0)
-      return res.cc(' 您已成功验证过了，请直接登录 / 用户名错误', 202)
+    if (results.length === 0) return res.cc(' 您已成功验证过了，请直接登录 / 用户名错误', 202)
     // 校验Code表里的确认已经检查
     const sql = `update ev_users_vercode set is_check = 1 where username=? and code=?`
     db.query(sql, [username, req.body.code], (err, results) => {
