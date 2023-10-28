@@ -10,7 +10,9 @@ const {
   CheckUserStatus,
 } = require('../Implement/middleware/CheckUserMiddleware')
 
-router.patch('/cagUser', expressJoi(userinfoRules.cag_UserInfo), userinfoRM.cagUserInfo) // 权限接口， 改用户信息
+router.patch('/cagUser',expressJoi(userinfoRules.cag_UserInfo),userinfoRM.cagUserInfo,
+) // 权限接口， 改用户信息
+router.patch('/cagpow', expressJoi(userinfoRules.cag_UserPower), userinfoRM.cagUserPower) // 权限接口 改用户权限
 router.patch('/cagpwd', expressJoi(userinfoRules.cag_UserPassword), userinfoRM.cagUserPwd) // 权限接口 改密码
 router.get(
   '/delUser',

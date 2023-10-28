@@ -26,15 +26,17 @@ exports.getUserInfoList = async (req, res) => {
     length: length,
   })
 }
+
 // 文章面板获取用户信息
 exports.authData = async (req, res) => {
   const UN = req.query.user
+  if (UN === 'null') return res.cc('错误！', 404)
   const data = {
     goodnums: 0,
     collects: 0,
     comments: 0,
     articles: 0,
-    Users: {}
+    Users: {},
   }
   // 获取用户基本数据
   const GetUserDataSql = `select username,user_id,useridentity,user_pic,user_content from ev_users where username=?`
@@ -98,6 +100,7 @@ exports.getUserInfoUN = async (req, res) => {
     and d.username=?`
   const sqla = `select  * from ev_articles where username =?  `
   const sqlF = `select * from ev_usercount where author =? AND relation = 1`
+  const sqlP = `select * from ev_userpower where username = ?`
   data.goodnums = (await ExecuteFuncData(sqlg, UN)).length
   data.collects = (await ExecuteFuncData(sqls, UN)).length
   data.comments = (await ExecuteFuncData(sqlc, UN)).length
@@ -105,27 +108,30 @@ exports.getUserInfoUN = async (req, res) => {
   const GetUserData = await ExecuteFuncData(GetUserDataSql, UN)
   data.Users = { ...GetUserData[0], password: '' }
   data.Users.fans = (await ExecuteFuncData(sqlF, UN)).length
+  data.Users.UserPower = (await ExecuteFuncData(sqlP, UN))[0]
   res.send({
     status: 200,
     message: '用户信息数据获取成功！',
     data: data,
+    ismessage: false,
   })
 }
 
 // 修改用户信息
 exports.cagUserInfo = async (req, res) => {
+  const setUserID = req.body.user_id ? req.body.user_id : req.auth.user_id
   // 校验用户ID Verify User ID 以及状态
   const VerifyUserIDSql = `select * from ev_users where user_id=?`
   // 更新用户信息 update user information
   const updateUserInformationSql = `update ev_users set ? where user_id=?`
-  const VerifyUserID = await ExecuteFuncData(VerifyUserIDSql, req.body.user_id)
+  const VerifyUserID = await ExecuteFuncData(VerifyUserIDSql, setUserID)
   if (VerifyUserID.length !== 1) return res.cc('非法id,错误请求 ！')
   if (VerifyUserID[0].isact !== 1) return res.cc('错误！账户未激活，无法修改其信息')
   if (VerifyUserID[0].state !== 0) return res.cc('错误！账户已注销，无法修改其信息')
   const cagUserData = JSON.parse(req.body.setData)
   const updateUserInformation = await ExecuteFuncData(updateUserInformationSql, [
     cagUserData,
-    req.body.user_id,
+    setUserID,
   ])
   if (updateUserInformation.affectedRows !== 1) return res.cc('更新用户数据失败')
   res.status(200).send({
@@ -134,19 +140,43 @@ exports.cagUserInfo = async (req, res) => {
   })
 }
 
+exports.cagUserPower = async (req, res) => {
+  const type = req.body.type
+  const value = req.body.value === 'true' ? 1 : 0
+  const user = req.auth.user_id
+  // 获取现有的权限信息
+  const SelectUserPowerSql = `select * from ev_userpower where user_id = ?`
+  // 修改用户权限
+  const ChangUserPowerSql = `UPDATE ev_userpower set ? WHERE user_id = ?`
+  const SelectUserPower = await ExecuteFuncData(SelectUserPowerSql, user)
+  for (const item in SelectUserPower[0]) {
+    // 如果修改的状态不同
+    if (item === type && SelectUserPower[0][item] !== value) {
+      const data = {
+        [type]: value,
+      }
+      const ChangUserPower = await ExecuteFuncData(ChangUserPowerSql, [data, user])
+      if (ChangUserPower.affectedRows !== 1) return res.cc('修改失败!', 403)
+      return res.cc('修改成功！', 200)
+    }
+  }
+  return res.cc('权限未改变!', 403)
+}
+
 // 修改用户密码
 exports.cagUserPwd = async (req, res) => {
   const oldpwd = req.body.oldpwd
   const newpwd = req.body.newpwd
-  const user = req.body.username
+  const user = req.auth.username
+  if (!user) return res.cc('用户状态异常！', 404)
   // 获取当前用户密码 Get current user password
   const GetCurrentUserPasswordSql = `select password from ev_users where username=?`
   const GetCurrentUserPassword = await ExecuteFuncData(GetCurrentUserPasswordSql, user)
   if (GetCurrentUserPassword.length === 0) return res.cc('错误，请重试', 500)
   const Checkoldpwd = bcrypt.compareSync(oldpwd, GetCurrentUserPassword[0].password)
-  if (!Checkoldpwd) return res.cc('修改失败，原密码错误', 401)
+  if (!Checkoldpwd) return res.cc('修改失败，原密码错误', 404)
   const Check_nopwd = bcrypt.compareSync(newpwd, GetCurrentUserPassword[0].password)
-  if (Check_nopwd) return res.cc('修改失败，原密码不能与旧密码相同', 401)
+  if (Check_nopwd) return res.cc('修改失败，原密码不能与旧密码相同', 404)
   // 更新用户密码 update user password
   const updateUserPasswordSql = `update ev_users set password=? where username=?`
   const password = bcrypt.hashSync(newpwd, 10)
@@ -158,7 +188,7 @@ exports.cagUserPwd = async (req, res) => {
   })
 }
 
-// 管理员注销用户
+// 自我销户
 exports.delUserInfo = async (req, res) => {
   const user = req.query.user
   const deluser = req.query.deluser
@@ -170,24 +200,10 @@ exports.delUserInfo = async (req, res) => {
     if (logoutUser.affectedRows === 0) return res.cc('注销失败', 404)
     res.status(200).send({
       status: 200,
-      message: '注销成功',
-    })
-  } else if (user && deluser) {
-    // 校验操作用户身份 Verify user identity
-    const VerifyUserIdentitySql = `select useridentity from ev_users where username=? AND state = 0 AND isact = 1`
-    const VerifyUserIdentity = await ExecuteFuncData(VerifyUserIdentitySql, user)
-    if (VerifyUserIdentity.length === 0 || VerifyUserIdentity[0].useridentity !== 'manager')
-      return res.cc('非法用户!非管理员禁止操作', 404)
-    // 注销用户 logout user
-    const logoutUserSql = `update ev_users set state=1 where username=? `
-    const logoutUser = await ExecuteFuncData(logoutUserSql, deluser)
-    if (logoutUser.length === 0) return res.cc('注销失败', 403)
-    res.status(200).send({
-      status: 200,
-      message: '注销成功',
+      message: '注销成功！感谢您在jihau_top的陪伴！',
     })
   } else {
-    return res.cc('非法用户', 404)
+    return res.cc('错误！', 404)
   }
 }
 
@@ -384,6 +400,7 @@ exports.UserActiveData = async (req, res) => {
     data: data,
   })
 }
+
 // 删除评论
 exports.UserDelActive = async (req, res) => {
   const body = req.query

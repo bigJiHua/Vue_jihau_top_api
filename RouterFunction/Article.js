@@ -17,7 +17,7 @@ const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
 exports.article_list = async (req, res) => {
   const page = req.query.page
   if (page < 0) return res.cc('参数错误', 404)
-  // 搜索用的ALL
+  //TODO V2版本用的 搜索用的ALL
   if (page === 'all') {
     // 获取所有未删除的文章 Get all but deleted articles
     const GetAllButDeletedArticlesSql = `SELECT 
@@ -38,7 +38,7 @@ exports.article_list = async (req, res) => {
     // 每次只获取10条文章 Get only 10 articles at a time
     const GetOnly10ArticlesAtATimeSql = `SELECT 
     article_id,content,cover_img,pub_date,title,username
-    FROM ev_articles where is_delete=0 AND state=0 ORDER BY ev_articles.id DESC limit 10 offset ?`
+    FROM ev_articles where state = 0 AND is_delete = 0 ORDER BY ev_articles.id DESC limit 10 offset ?`
     const GetOnly10ArticlesAtATime = await ExecuteFuncData(
       GetOnly10ArticlesAtATimeSql,
       parseInt(page),
@@ -54,7 +54,7 @@ exports.article_list = async (req, res) => {
       status: 200,
       message: '获取成功',
       data: config.SelectContent(GetOnly10ArticlesAtATime, 100),
-      ismessage: false
+      ismessage: false,
     })
   }
 }
@@ -125,57 +125,106 @@ exports.getNotifyList = async (req, res) => {
 
 // 查找名下的文章
 exports.article_uget = async (req, res) => {
-  const user = req.query.username
+  const user = req.query.username ? req.query.username : req.auth.username
+  const page = Number(req.query.page)
+  const type = req.query.type
+  let state = `= 0`
+  if (type !== 'undefined' && type === '2') state = `!= 0`
   if (!user) return res.cc('参数错误', 404)
-  // 查找名下的文章 Get the current user's articles
+  // 多表联查 查找名下的文章 数据 Get the current user's articles
+  const GetALlNumSql = `SELECT
+    a.*,
+    (SELECT COUNT(goodnum) FROM ev_userartdata u1 WHERE u1.article_id = a.article_id) AS goodNum,
+    (SELECT COUNT(collect) FROM ev_userartdata u2 WHERE u2.article_id = a.article_id) AS collectNum
+    FROM ev_articles a WHERE a.username = ? AND a.is_delete = 0 AND a.state ${state}`
   const GetTheCurrentUsersArticlesSql = `SELECT
-    article_id,id,is_delete,keyword,lable,pub_date,pub_month,state,title,username,read_num
-    FROM ev_articles WHERE username=? AND is_delete=0`
-  const GetTheCurrentUsersArticles = await ExecuteFuncData(GetTheCurrentUsersArticlesSql, user)
-  if (GetTheCurrentUsersArticles.length === 0) return res.cc('空空如也，赶快发布属于你的新文章吧！')
+    a.*,
+    (SELECT COUNT(goodnum) FROM ev_userartdata u1 WHERE u1.article_id = a.article_id) AS goodNum,
+    (SELECT COUNT(collect) FROM ev_userartdata u2 WHERE u2.article_id = a.article_id) AS collectNum
+    FROM ev_articles a WHERE a.username = ? AND a.is_delete = 0 AND a.state ${state} limit 10 offset ?`
+  const GetALlNum = await ExecuteFuncData(GetALlNumSql, user)
+  let GetTheCurrentUsersArticles = []
+  if (!isNaN(page)) {
+    GetTheCurrentUsersArticles = await ExecuteFuncData(GetTheCurrentUsersArticlesSql, [user, page])
+  }
+  if (GetALlNum.length === 0) return res.cc('空空如也，赶快发布属于你的新文章吧！')
   res.status(200).send({
     status: 200,
     message: '获取用户文章成功',
-    data: GetTheCurrentUsersArticles,
+    data: !isNaN(page)
+      ? config.SelectContent(GetTheCurrentUsersArticles, 40)
+      : config.SelectContent(GetALlNum, 40),
+    Num: GetALlNum.length,
   })
 }
 
+// 获取用户文章
+exports.article_get = async (req, res) => {
+  const UID = req.query.id
+  const User = req.auth.username
+  if (!User) return res.cc('错误！', 401)
+  const data = { article: '' }
+  // 查询文章是否删除 Query whether the article is deleted
+  const QueryArticleIsDeleteSql = `select id,username,title,content,cover_img,lable,keyword,article_id,describes,state
+    from ev_articles where article_id=? and username = ? and is_delete=0`
+  // 查询文章是否删除 Query whether the article is deleted
+  const QueryArticleIsDelete = await ExecuteFuncData(QueryArticleIsDeleteSql, [UID, User])
+  if (QueryArticleIsDelete.length === 0) return res.cc('404 NOT FOUNT', 404)
+  data.article = QueryArticleIsDelete[0]
+  res.status(200).send({
+    status: 200,
+    message: '获取文章成功',
+    data: data,
+  })
+}
 // 发布文章
 exports.article_put = async (req, res) => {
   const put_data = req.body
-  put_data.pub_date = config.pub_date
+  const artIsMd = req.body.isMd === 'true'
+  const message = req.body.state === '0' ? '发布文章成功' : '保存草稿成功！'
+  put_data.username = put_data.username !== null ? put_data.username : req.auth.username
+  put_data.pub_date = put_data.pub_date !== '' ? put_data.pub_date : config.pub_date
   put_data.pub_month = config.pub_month
-  const UID = config.generateMixed(4)
-  // 查询是否有重复UID Check if there are duplicate UIDs
-  const CheckIfThereAreDuplicateUIDsSql = `select * from ev_articles where article_id=?`
-  const CheckIfThereAreDuplicateUIDs = await ExecuteFuncData(CheckIfThereAreDuplicateUIDsSql, UID)
-  if (CheckIfThereAreDuplicateUIDs.length !== 0)
-    return res.cc('UID重复!WARN! 备份好数据，请重新发布', 204)
+  let UID = ''
+  if (artIsMd) {
+    UID = `md${config.generateMixed(2)}`
+  }
+  while (true) {
+    // 查询是否有重复UID Check if there are duplicate UIDs
+    const CheckIfThereAreDuplicateUIDsSql = `select * from ev_articles where article_id=?`
+    const CheckIfThereAreDuplicateUIDs = await ExecuteFuncData(CheckIfThereAreDuplicateUIDsSql, UID)
+    if (CheckIfThereAreDuplicateUIDs.length === 0) break
+    if (CheckIfThereAreDuplicateUIDs.length !== 0 && artIsMd) {
+      UID = `md${config.generateMixed(2)}`
+    } else if (CheckIfThereAreDuplicateUIDs.length !== 0) {
+      UID = config.generateMixed(4)
+    }
+  }
+  // console.log(UID)
   put_data.article_id = UID
-  // 查询是否有重复TiTle Query whether there are duplicate TiTles
-  const CheckIfThereAreDuplicateTiTlesSql = `SELECT * FROM ev_articles WHERE title=?`
-  const CheckIfThereAreDuplicateTiTles = await ExecuteFuncData(
-    CheckIfThereAreDuplicateTiTlesSql,
-    put_data.title,
-  )
-  if (CheckIfThereAreDuplicateTiTles.length !== 0)
-    return res.cc('文章已经被发布过啦！请换一个标题吧!', 204)
+  delete put_data.isMd
   // 插入文章 Insert article
   const InsertArticleSql = `insert into ev_articles set ?`
   const InsertArticle = await ExecuteFuncData(InsertArticleSql, put_data)
   if (InsertArticle.affectedRows !== 1) return res.cc('发布文章失败，请重新再试')
   res.status(200).send({
     status: 200,
-    message: '发布文章成功!',
+    message: message,
     article: UID,
   })
 }
 
 // 删除文章
 exports.article_del = async (req, res) => {
+  const id = req.body.id
+  const user = req.auth.username
+  if (req.body.id === 'undefined') return res.cc('文章id不能为undefined！')
+  if (!user) return res.cc('非法用户！', 401)
+  console.log(id)
+  console.log(user)
   // 删除文章 delete article
-  const DeleteArticleSql = `update ev_articles set is_delete=1 where id=?`
-  const DeleteArticle = await ExecuteFuncData(DeleteArticleSql, req.body.id)
+  const DeleteArticleSql = `update ev_articles set is_delete=1 where id=? AND username = ?`
+  const DeleteArticle = await ExecuteFuncData(DeleteArticleSql, [id, user])
   if (DeleteArticle.affectedRows !== 1) return res.cc('删除文章失败，请重新再试')
   res.send({
     status: 200,
@@ -188,13 +237,14 @@ exports.article_cag = async (req, res) => {
   const username = req.body.username
   const artid = req.body.article_id
   // 查询文章ID是否合法 Check if the article ID is legal
-  const CheckIfTheArticleIDIsLegalSql = `select * from ev_articles where username=? and article_id=?`
+  const CheckIfTheArticleIDIsLegalSql = `select * from ev_articles where username=? and article_id=? and id = ?`
   const CheckIfTheArticleIDIsLegal = await ExecuteFuncData(CheckIfTheArticleIDIsLegalSql, [
     username,
     artid,
+    req.body.id,
   ])
   if (CheckIfTheArticleIDIsLegal.length === 0)
-    return res.cc('非法用户或非法文章ID，请复制保存好您的文章数据再次提交修改')
+    return res.cc('非法用户或非法文章ID，请复制保存好您的文章数据再次提交修改', 404)
   // 更新文章内容 Update article content
   const UpdateArticleContentSql = `update ev_articles set ? where username=? and article_id=?`
   const UpdateArticleContent = await ExecuteFuncData(UpdateArticleContentSql, [
@@ -226,19 +276,20 @@ exports.article_image = async (req, res) => {
 
 // 新增名下图库照片
 exports.article_upimage = async (req, res) => {
-  const path = config.selpath + req.file.originalname
+  const FileName = config.generateUserId(18) + '.' + req.file.originalname.split('.').pop()
+  const Setpath = config.selpath + FileName
   const username = req.body.username
-  if (req.file.size > 1000 * 1024) return res.cc('文件太大！无法上传', 206)
-  if (!/^image\/(jpeg|png|gif|bmp|webp|svg+xml)$/.test(req.file.mimetype))
+  if (req.file.size > 10000 * 1024) return res.cc('文件太大！无法上传', 206)
+  if (!/^image\/(jpeg|png|gif|bmp|webp|svg+xml|heic)$/.test(req.file.mimetype))
     return res.cc('不能上传非图片类的文件！', 206)
   if (req.file.length === 0) res.cc('上传文件不能为空')
   const data = {
     username: username,
-    userimage: path,
+    userimage: Setpath,
     date: config.pub_date,
-    data: req.file.originalname.split('.')[0],
+    data: config.generateUserId(12),
   }
-  // 插入资源
+  // 插入资源到数据库
   // 获取今日插入的照片数量
   const QueryTheNumberOfPicturesUploadedTodaySql = `SELECT * FROM ev_userimage WHERE date = CURDATE() and username=?`
   const QueryTheNumberOfPicturesUploadedToday = await ExecuteFuncData(
@@ -246,33 +297,76 @@ exports.article_upimage = async (req, res) => {
     username,
   )
   // 如果未超过 文件上限
-  if (QueryTheNumberOfPicturesUploadedToday.length <= config.MaxFile) {
-    const insertGallerySql = `insert into ev_userimage set ?`
-    const insertGallery = await ExecuteFuncData(insertGallerySql, data)
-    if (insertGallery.affectedRows !== 1) return res.cc('存储失败，请重新再试', 406)
-    return res.cc('文件接收成功', 200)
+  if (QueryTheNumberOfPicturesUploadedToday.length < config.MaxFile) {
+    // 假设 buffer 是文件的二进制数据
+    const buffer = req.file.buffer
+    // 将二进制数据写入文件
+    fs.writeFile(config.path + FileName, buffer, async (err) => {
+      if (err) {
+        return res.cc('存储失败，请重新再试', 406)
+      } else {
+        const insertGallerySql = `insert into ev_userimage set ?`
+        const insertGallery = await ExecuteFuncData(insertGallerySql, data)
+        if (insertGallery.affectedRows !== 1) return res.cc('存储失败，请重新再试', 406)
+        return res.cc('文件接收成功', 200)
+      }
+    })
   } else {
-    return res.cc('今日文件上传条数已达到最大值！', 204)
+    return res.cc('今日文件上传条数已达到最大值！', 200)
   }
 }
 
-// 删除名下图库照片
+// 删除名下图库照片const
+fs = require('fs')
+const util = require('util')
+const { pub_date } = require('../config')
+const unlink = util.promisify(fs.unlink)
+
 exports.article_imagedel = async (req, res) => {
   const body = req.body
-  // 查询图片资源是否存在 Query whether the image resource exists
-  const QueryWhetherTheImageResourceExistsSql = `select * from ev_userimage where username=? and id=?`
-  // 删除图片资源 delete image resource
-  const DeleteImageResourceSql = `delete from ev_userimage where id=?`
+  // 查询图片资源是否存在
+  const QueryWhetherTheImageResourceExistsSql = `SELECT * FROM ev_userimage WHERE username=? AND id=?`
+  // 删除图片资源
+  const DeleteImageResourceSql = `DELETE FROM ev_userimage WHERE id=?`
 
-  const QueryWhetherTheImageResourceExists = await ExecuteFuncData(
-    QueryWhetherTheImageResourceExistsSql,
-    [body.picusername, body.id],
-  )
-  if (QueryWhetherTheImageResourceExists.length === 0) return res.cc('查询错误！', 406)
-  const DeleteImageResource = await ExecuteFuncData(DeleteImageResourceSql, body.id)
-  if (DeleteImageResource.affectedRows !== 1) return res.cc('删除失败', 406)
-  res.status(200).send({
-    status: 200,
-    message: '删除成功',
-  })
+  try {
+    const QueryWhetherTheImageResourceExists = await ExecuteFuncData(
+      QueryWhetherTheImageResourceExistsSql,
+      [body.picusername, body.id],
+    )
+
+    if (QueryWhetherTheImageResourceExists.length === 0) {
+      return res.cc('查询错误！', 406)
+    }
+
+    const filePath = `./public/${
+      String(QueryWhetherTheImageResourceExists[0].userimage).match(/(?<=\/public\/).*/)[0]
+    }`
+
+    try {
+      await unlink(filePath)
+    } catch (err) {
+      // console.log(err);
+      await ExecuteFuncData(DeleteImageResourceSql, body.id)
+      return res.send({
+        message: '系统找不到该文件/已删除',
+        code: 406,
+      })
+    }
+
+    const DeleteImageResource = await ExecuteFuncData(DeleteImageResourceSql, body.id)
+    if (DeleteImageResource.affectedRows !== 1) {
+      return res.cc('执行失败', 406)
+    }
+
+    return res.status(200).send({
+      status: 200,
+      message: '删除成功',
+    })
+  } catch (err) {
+    return res.send({
+      message: '文件系统无该文件/已删除',
+      status: 406,
+    })
+  }
 }

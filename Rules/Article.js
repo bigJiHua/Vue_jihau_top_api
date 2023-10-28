@@ -5,10 +5,10 @@ const joi = require('joi')
 const title = joi.string().max(30).required()
 const content = joi.string().required().min(1)
 const cover_img = joi.string().allow(null, '')
-const pub_date = joi.string().max(10)
+const pub_date = joi.string().allow(null, '')
 const lable = joi.string()
 // 定义文章id的验证规则
-const id = joi.number().integer().required()
+const id = joi.string().required()
 const article_id = joi.string().required()
 const username = joi.string().required()
 const picusername = joi.string().required()
@@ -24,6 +24,9 @@ exports.article_add_schema = {
     pub_date,
     lable,
     keyword,
+    describes: joi.string().allow(null, 0),
+    state: joi.string().allow(null, 0),
+    isMd: joi.string().allow(null, 'false'),
   },
 }
 
@@ -37,11 +40,18 @@ exports.article_cag_schema = {
     lable,
     keyword,
     article_id,
+    describes: joi.string().allow(null, ''),
+    state: joi.string().allow(null, ''),
   },
 }
 
 exports.article_id_schema = {
   body: {
+    id,
+  },
+}
+exports.article_get_schema = {
+  data: {
     id,
   },
 }

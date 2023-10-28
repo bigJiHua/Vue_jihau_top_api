@@ -49,29 +49,6 @@ exports.user_login_API = async (req, res) => {
     // 对用户的信息进行加密生成加密后的token                             token有效期
     tokenStr = 'Bearer ' + jwt.sign(user, config.jwtSecretKey, { expiresIn: config.expiresIn })
   }
-  // 查询点赞
-  const sqlg = `select
-    s.title,s.article_id,s.cover_img,s.username,s.content,d.id
-    from ev_userartdata d,ev_articles s
-    where d.article_id = s.article_id
-    and d.goodnum = 1 and d.username=?`
-  // 查询收藏
-  const sqls = `select
-    s.title,s.article_id,s.cover_img,s.username,s.content,d.id
-    from ev_userartdata d,ev_articles s
-    where d.article_id = s.article_id
-    and d.collect = 1 and d.username=?`
-  // 查询评论
-  const sqlc = `select
-    s.article_id,s.title,s.username,d.comment,d.pub_date,s.cover_img,d.id
-    from ev_usercomment d,ev_articles s
-    where d.article_id = s.article_id
-    and d.username=?`
-  const sqla = `select  * from ev_articles where username =?  `
-  data.goodnums = (await ExecuteFuncData(sqlg, userinfo.username)).length
-  data.collects = (await ExecuteFuncData(sqls, userinfo.username)).length
-  data.comments = (await ExecuteFuncData(sqlc, userinfo.username)).length
-  data.articles = (await ExecuteFuncData(sqla, userinfo.username)).length
   data.Users = { ...CheckUserStatus[0], password: '' }
   res.send({
     status: 200,
@@ -121,6 +98,8 @@ exports.regUser = async (req, res) => {
   userinfo.user_id = config.generateUserId(6)
   // 插入注册时间戳
   userinfo.registerDate = new Date().getTime()
+  // 设置默认用户头像
+  userinfo.user_pic = config.defaultUserLogo
   const NewUsers = await ExecuteFuncData(NewUsersSql, userinfo)
   // 在权限表插入用户权限
   const insertNewUsersPowerSql = `INSERT INTO ev_userpower (username,user_id) SELECT username,user_id FROM ev_users WHERE username = ?`

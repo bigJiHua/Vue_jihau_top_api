@@ -2,12 +2,12 @@
 const joi = require('joi')
 const id = joi.number().integer().min(1).required()
 const user_id = joi.required()
-const oldpwd = joi.string().required()
+const oldpwd = joi.string().required().min(6).max(25)
 const newpwd = joi.string().required().min(6).max(25)
 const username = joi.string().required()
 const user = joi.string().required()
 
-// 用户信息
+// 改用户信息
 exports.cag_UserInfo = {
   body: {
     user_id,
@@ -20,7 +20,13 @@ exports.cag_UserPassword = {
   body: {
     oldpwd,
     newpwd,
-    username,
+  },
+}
+// 改权限
+exports.cag_UserPower = {
+  body: {
+    type: joi.string().required(),
+    value: joi.string().required(),
   },
 }
 

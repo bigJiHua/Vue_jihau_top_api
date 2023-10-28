@@ -36,6 +36,7 @@ webapp.use((req, res, next) => {
       message: err instanceof Error ? err.message : err,
     })
   }
+  // console.log(req.url)
   next()
 })
 /* 中间件 */
@@ -56,6 +57,24 @@ webapp.use('/api/Ctrl', expressJWT(config.options), CtrlAPIPort) // 权限接口
 webapp.use('/api/my', user_login_Router) // 登录注册 非权限接口
 webapp.use('/api/getmail', user_mail_Router) // 获取验证码 非权限接口
 webapp.use('/api/data', get_data_Router) // get数据接口 非权限接口
+const ExecuteFuncData = require('./Implement/ExecuteFunctionData')
+const path = require('path')
+//TODO test
+webapp.get('/api/image', async (req, res) => {
+  const shortCode = req.query.code
+  console.log(shortCode)
+  const Sle = `Select * from ev_userimage where data = ?`
+  const Sdjn = await ExecuteFuncData(Sle, shortCode)
+  const filePath = `./public/${String(Sdjn[0].userimage).match(/(?<=\/public\/).*/)[0]}`
+  // 根据 shortCode 解析获取文件路径
+  // const filePath = resolveFilePathFromShortCode(shortCode);
+  // 返回文件给前端
+  res.sendFile(path.resolve(filePath))
+  // res.status(200).send({
+  //   message: filePath,
+  //   status: 200
+  // })
+})
 webapp.use('/api/public/uploads', express.static('./public/uploads')) // 静态资源
 
 /* 路由模块 */

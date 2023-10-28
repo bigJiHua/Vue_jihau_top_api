@@ -56,7 +56,7 @@ exports.CheckUserStatus = async (req, res, next) => {
     const CheckUserStatus = await ExecuteFuncData(CheckUserStatusSql, username)
     if (CheckUserStatus.length === 0) return res.cc('用户账户已注销,无法对其进行操作！', 404)
     const CheckUserIsact = await ExecuteFuncData(CheckUserIsactSql, username)
-    if (CheckUserIsact.length === 0) return res.cc('用户账户未激,无法对其进行操作！', 404)
+    if (CheckUserIsact.length === 0) return res.cc('用户账户未激活,无法对其进行操作！', 404)
     next()
   } else if (user !== undefined) {
     const CheckUserStatus = await ExecuteFuncData(CheckUserStatusSql, user)

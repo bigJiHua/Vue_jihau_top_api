@@ -5,12 +5,14 @@ const id = joi.string().required()
 exports.getArticleId = {
   data: {
     id,
+    user: joi.string().allow(null, ''),
+    type: joi.string().allow(null, ''),
   },
 }
 // 搜索词
 exports.SearchKeyWorld = {
-  data : {
+  data: {
     key: joi.string().min(1).max(50).required(),
-    type: joi.string().required()
-  }
+    type: joi.string().required(),
+  },
 }

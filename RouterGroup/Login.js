@@ -13,8 +13,8 @@ router.post('/reguser', expressJoi(user_schema_M.user_regUserRM), user_login_Rou
 router.post(
   '/Ctrllogin',
   expressJoi(user_schema_M.user_loginRouter),
-  (req, res, next) => {
-    VerifyAdministratorIdentity(req, res, next)
+  async (req, res, next) => {
+    await VerifyAdministratorIdentity(req, res, next)
   },
   user_login_Router.user_login_API,
 )

@@ -283,12 +283,12 @@ exports.searchanything = async (req, res) => {
   switch (GetType) {
     case 'article':
       tableName = 'ev_articles'
-      stateCondition = ' AND state = 0 AND is_delete = 0'
+      stateCondition = ' AND is_delete = 0'
       SelectId = 'article_id'
       break
     case 'notify':
       tableName = 'ev_notify'
-      stateCondition = ' AND state = 0 AND is_delete = 0'
+      stateCondition = ' AND is_delete = 0'
       SelectId = 'notify_id'
       break
     case 'wait_notify':

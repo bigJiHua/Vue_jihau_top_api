@@ -13,7 +13,7 @@ exports.getArticle = async (req, res) => {
     collect: 0,
   }
   // 查询文章是否删除 Query whether the article is deleted
-  const QueryArticleIsDeleteSql = `select * from ev_articles where article_id=? and is_delete=0`
+  const QueryArticleIsDeleteSql = `select * from ev_articles where article_id=? and state = 0 and is_delete=0`
   // 查询该文章的点赞和评论数 Query article user operations
   const QueryArticleUserOperationsSql = `select
         ev_userartdata.goodnum,ev_userartdata.collect
@@ -41,14 +41,16 @@ exports.getArticle = async (req, res) => {
       data.collect += parseInt(newArry[key].collect)
     }
     // 获取当前登录的用户是否给当前文章点赞和收藏 Query whether the article user has operated
-    const QueryWhetherTheArticleUserHasOperated = await ExecuteFuncData(
-      QueryWhetherTheArticleUserHasOperatedSql,
-      [UID, req.query.user],
-    )
-    const getdata = JSON.parse(JSON.stringify(QueryWhetherTheArticleUserHasOperated))[0]
-    if (getdata) {
-      data.acgoodnum = parseInt(getdata.goodnum) === 1
-      data.accollect = parseInt(getdata.collect) === 1
+    if (req.query.user && req.query.user !== '') {
+      const QueryWhetherTheArticleUserHasOperated = await ExecuteFuncData(
+        QueryWhetherTheArticleUserHasOperatedSql,
+        [UID, req.query.user],
+      )
+      const getdata = JSON.parse(JSON.stringify(QueryWhetherTheArticleUserHasOperated))[0]
+      if (getdata) {
+        data.acgoodnum = parseInt(getdata.goodnum) === 1
+        data.accollect = parseInt(getdata.collect) === 1
+      }
     }
     // 查询文章评论 Query article comments
     const QueryArticleComments = await ExecuteFuncData(QueryArticleCommentsSql, UID)
@@ -138,7 +140,7 @@ exports.SearchApi = async (req, res) => {
   if (key.trim() === '') return res.cc('Key not found', 404)
   // 过滤后的关键词
   const filterKey = config.filterSqlInjection(key, res)
-  if(!filterKey) return
+  if (!filterKey) return
   let SearchQuerySql = ``
   if (tableName !== 'ev_users') {
     // 搜索表不在用户表里则
