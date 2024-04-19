@@ -54,3 +54,38 @@ exports.authData = {
     user,
   },
 }
+
+exports.authArticleData = {
+  data: {
+    user,
+    page: joi.required(),
+  },
+}
+exports.RelationData = {
+  body: {
+    author: joi.string().required(),
+  },
+}
+exports.getRelationData = {
+  data: {
+    author: joi.string().required(),
+    met: joi.string().required(),
+    Num: joi.number(),
+  },
+}
+exports.getUserMessage = {
+  data: {
+    Num: joi.required(),
+  },
+}
+exports.delUserMessage = {
+  body: {
+    id: joi.required(),
+    type: joi.required(),
+  }
+}
+exports.userData = {
+  data: {
+    user: joi.string().required(),
+  },
+}

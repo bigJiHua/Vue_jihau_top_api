@@ -316,6 +316,11 @@ exports.searchanything = async (req, res) => {
       stateCondition = ' AND useridentity = "manager"'
       SelectId = 'user_id'
       break
+    case 'all':
+      tableName = 'ev_users'
+      stateCondition = ' AND state = 0 AND isact = 1'
+      SelectId = 'user_id'
+      break
     case 'deleteUser':
       tableName = 'ev_users'
       stateCondition = ' AND state = 1'
@@ -342,7 +347,7 @@ exports.searchanything = async (req, res) => {
   } else {
     // 搜索表为用户表
     SearchQuerySql = `SELECT birthday,city,email,id,isact,registerDate,sex,state,user_content,user_id,user_pic,useridentity,username
-    FROM ${tableName} WHERE (${SelectId} LIKE '%${filterKey}%' OR username LIKE '%${filterKey}%' OR user_content LIKE '%${filterKey}%')${stateCondition} `
+    FROM ${tableName} WHERE (${SelectId} LIKE '%${filterKey}%' OR username LIKE '%${filterKey}%' OR user_content LIKE '%${filterKey}%' OR useridentity LIKE '%${filterKey}%')${stateCondition} `
   }
   // 执行查询语句
   const SearchQuery = await ExecuteFunc(SearchQuerySql)

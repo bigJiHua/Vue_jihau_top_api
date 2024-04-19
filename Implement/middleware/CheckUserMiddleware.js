@@ -14,31 +14,47 @@ exports.VerifyAdministratorIdentity = async (req, res, next) => {
   const verifyIdentitySql = `select * from ev_users where username=? and useridentity=?`
   const verifyIdentity = await ExecuteFuncData(verifyIdentitySql, [getUser, useridentity])
   if (verifyIdentity.length === 0) {
-    res.status(404).send({
-      status: 404,
+    res.status(401).send({
+      status: 401,
       message: '非管理员禁止操作!',
     })
   } else {
     next()
   }
 }
-// 校验token
-exports.verifyToken = async (token) => {
+// 校验历史token是否可用
+exports.verifyUserToken = (token) => {
   // 如果token = undefined返回false
   if (!token) return false
   try {
     // Verifying the token using express-jwt
     const decodedToken = jwt.verify(token, config.jwtSecretKey, { algorithms: ['HS256'] })
     if (decodedToken) return true
-    return true
   } catch (err) {
     // 如果token = 解析错误返回false
     return false
   }
 }
+// 校验普通get请求解析用户数据
+exports.verifyToken = (req, res, next) => {
+  // 获取请求头中的 Authorization 头部，通常包含 token
+  if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
+    const token = req.headers.authorization.replace('Bearer ', '')
+    try {
+      // 解析 token，此处的 'your_secret' 应该替换为你的 JWT 密钥
+      const tokenData = jwt.verify(token, config.jwtSecretKey, { algorithms: ['HS256'] })
+      // 将解析的数据存储在请求对象中，以便后续路由使用
+      req.authData = tokenData ? tokenData : []
+    } catch (err) {
+      console.log(err)
+    }
+  }
+  // 继续执行下一个中间件或路由
+  next()
+}
 // TODO 检查请求web平台
 exports.CheckReqWebsite = (req, res, next) => {
-  const data = req.he
+  // const data = req.he
 }
 /* 这是一个用于检查用户状态的中间件 */
 // 检查用户状态 CheckUserStatus
@@ -63,6 +79,24 @@ exports.CheckUserStatus = async (req, res, next) => {
     if (CheckUserStatus.length === 0) return res.cc('用户账户已注销,无法对其进行操作！', 404)
     const CheckUserIsact = await ExecuteFuncData(CheckUserIsactSql, user)
     if (CheckUserIsact.length === 0) return res.cc('用户账户未激活,无法对其进行操作！', 404)
+    next()
+  } else {
+    res.cc('查询参数异常', 404)
+  }
+}
+
+// 检查用户是否存在 CheckUserisTrue
+exports.CheckUserisTrue = async (req, res, next) => {
+  const user = req.query.user
+  const getUser = req.authData ? req.authData.username : ''
+  let isSelfBoolean = false
+  const CheckUserStatusSql = `select username,user_id,useridentity,sex,city,user_pic,user_bgc,user_content,birthday,registerDate from ev_users where username=?`
+  if (user !== undefined) {
+    if (user.toLowerCase() === getUser.toLowerCase()) isSelfBoolean = true
+    const CheckUserStatus = await ExecuteFuncData(CheckUserStatusSql, user)
+    if (CheckUserStatus.length === 0) return res.cc('用户不存在！', 404)
+    req.body.isSelf = isSelfBoolean
+    req.body.UserData = CheckUserStatus[0]
     next()
   } else {
     res.cc('查询参数异常', 404)

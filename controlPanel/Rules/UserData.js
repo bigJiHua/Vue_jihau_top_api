@@ -54,3 +54,19 @@ exports.CagUesrPower = {
     type,
   },
 }
+exports.sendMessage = {
+  body: {
+    type: joi.string().required(),
+    title: joi.string().required(),
+    senduser: joi.string().required(),
+    getuser: joi.string().required(),
+    content: joi.string().required(),
+    label: joi.string().required()
+  },
+}
+exports.getMessage = {
+  data: {
+    num: joi.string().required(),
+    key: joi.string()
+  }
+}

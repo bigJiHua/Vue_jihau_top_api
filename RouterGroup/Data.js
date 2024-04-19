@@ -7,17 +7,38 @@ const article_function = require('../RouterFunction/Article')
 const getSetting_function = require('../RouterFunction/Setting_link')
 const get_archives_Router = require('../RouterFunction/Archives')
 const userinfoRM = require('../RouterFunction/Userinfo')
-
+const space_Router = require('../RouterFunction/SpaceData')
+/* 路由规则 */
 const ArchiveRules = require('../Rules/Archives')
 const userinfoRules = require('../Rules/userinfo')
+/* 处理中间件 */
+const { CheckUserisTrue, verifyToken } = require('../Implement/middleware/CheckUserMiddleware')
+const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
+router.use((req, res, next) => {
+  verifyToken(req, res, next)
+})
 
+/* Router */
 router.get('/list', article_function.article_list) // 首页列表
 router.get('/archive', article_function.article_archive) // 文章归档
 router.get('/notify', article_function.getNotifyList) // 获取通知展示列表
 router.get('/Setting', getSetting_function.router_getSetting) // 首页设置信息
 router.get('/article', expressJoi(ArchiveRules.getArticleId), get_archives_Router.getArticle) // 请求获得文章数据
-router.get('/page', expressJoi(ArchiveRules.getArticleId), get_archives_Router.getPage) // 请求获得文章数据
+router.get('/artdata', expressJoi(ArchiveRules.getArticleId), get_archives_Router.getArticleData) // 请求获得文章数据（评论 点赞等等...
+router.get('/page', expressJoi(ArchiveRules.getArticleId), get_archives_Router.getPage) // 请求获得通知数据
 router.get('/UpreadNum', expressJoi(ArchiveRules.getArticleId), get_archives_Router.UpdateReadNum) // 增加阅读数
 router.get('/authData', expressJoi(userinfoRules.authData), userinfoRM.authData) // 获取作者信息
 router.get('/search', expressJoi(ArchiveRules.SearchKeyWorld), get_archives_Router.SearchApi) //搜索接口
+router.get(
+  '/space',
+  expressJoi(userinfoRules.userData),
+  async (req, res, next) => {
+    await CheckUserisTrue(req, res, next)
+  },
+  userinfoRM.getSpaceData,
+) // 获取个人空间
+router.get('/spaceart', expressJoi(userinfoRules.authArticleData), space_Router.spaceArt) // 获取作者文章
+router.get('/spacecol', expressJoi(userinfoRules.authArticleData), space_Router.spaceCol) // 获取作者收藏
+router.get('/spacelike', expressJoi(userinfoRules.authArticleData), space_Router.spaceLike) // 获取作者喜欢
+router.get('/relation', expressJoi(userinfoRules.getRelationData), space_Router.getUserRelation) // 查两人关系 以及获取关系列表
 module.exports = router

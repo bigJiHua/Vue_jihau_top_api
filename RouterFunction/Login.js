@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken')
 const config = require('../config')
 const { regUserMail } = require('../Mail/mail')
 const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
-const { verifyToken } = require('../Implement/middleware/CheckUserMiddleware')
+const { verifyUserToken } = require('../Implement/middleware/CheckUserMiddleware')
 const { setUserLoginLog } = require('../Implement/ExecuteUserLogData')
 
 // 用户登录
@@ -41,7 +41,7 @@ exports.user_login_API = async (req, res) => {
   const SelectUserLogDataSql = `SELECT token FROM ev_login_log WHERE user_id = ? AND (UNIX_TIMESTAMP() - 1000 - login_time) / 3600 < 23;`
   const SelectUserLogData = await ExecuteFuncData(SelectUserLogDataSql, CheckUserStatus[0].user_id)
   // 校验历史token是否可用
-  if (SelectUserLogData[0] !== undefined && (await verifyToken(SelectUserLogData[0].token))) {
+  if (SelectUserLogData[0] !== undefined && verifyUserToken(SelectUserLogData[0].token)) {
     tokenStr = SelectUserLogData[0].token
   } else {
     // 如果密码没错的话 开始准备数据

@@ -11,13 +11,12 @@ const lable = joi.string()
 const id = joi.string().required()
 const article_id = joi.string().required()
 const username = joi.string().required()
-const picusername = joi.string().required()
+const picusername = joi.string()
 const keyword = joi.string()
 
 // 验证规则对象 - 发布文章
 exports.article_add_schema = {
   body: {
-    username,
     title,
     content,
     cover_img,
@@ -60,6 +59,7 @@ exports.article_get_schema = {
 exports.article_getimage = {
   body: {
     picusername,
+    Num: joi.allow(null, ''),
   },
 }
 

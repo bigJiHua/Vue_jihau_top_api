@@ -17,46 +17,27 @@ const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
 exports.article_list = async (req, res) => {
   const page = req.query.page
   if (page < 0) return res.cc('参数错误', 404)
-  //TODO V2版本用的 搜索用的ALL
-  if (page === 'all') {
-    // 获取所有未删除的文章 Get all but deleted articles
-    const GetAllButDeletedArticlesSql = `SELECT 
- article_id,content,lable,keyword,pub_date,pub_month,title,username FROM ev_articles where is_delete=0`
-    const GetAllButDeletedArticles = await ExecuteFunc(GetAllButDeletedArticlesSql)
-    if (GetAllButDeletedArticles.length === 0) {
-      return res.status(204).send({
-        status: 204,
-        message: '数据库为空',
-      })
-    }
-    res.status(200).send({
-      status: 200,
-      message: '获取成功',
-      data: config.SelectContent(GetAllButDeletedArticles, 30),
-    })
-  } else {
-    // 每次只获取10条文章 Get only 10 articles at a time
-    const GetOnly10ArticlesAtATimeSql = `SELECT 
+  // 每次只获取10条文章 Get only 10 articles at a time
+  const GetOnly10ArticlesAtATimeSql = `SELECT 
     article_id,content,cover_img,pub_date,title,username
     FROM ev_articles where state = 0 AND is_delete = 0 ORDER BY ev_articles.id DESC limit 10 offset ?`
-    const GetOnly10ArticlesAtATime = await ExecuteFuncData(
-      GetOnly10ArticlesAtATimeSql,
-      parseInt(page),
-    )
-    if (GetOnly10ArticlesAtATime.length === 0) {
-      return res.status(200).send({
-        status: 204,
-        message: '已加载全部数据',
-        data: config.SelectContent(GetOnly10ArticlesAtATime, 100),
-      })
-    }
-    res.status(200).send({
-      status: 200,
-      message: '获取成功',
+  const GetOnly10ArticlesAtATime = await ExecuteFuncData(
+    GetOnly10ArticlesAtATimeSql,
+    parseInt(page),
+  )
+  if (GetOnly10ArticlesAtATime.length === 0) {
+    return res.status(200).send({
+      status: 204,
+      message: '已加载全部数据',
       data: config.SelectContent(GetOnly10ArticlesAtATime, 100),
-      ismessage: false,
     })
   }
+  res.status(200).send({
+    status: 200,
+    message: '获取成功',
+    data: config.SelectContent(GetOnly10ArticlesAtATime, 100),
+    ismessage: false,
+  })
 }
 
 // 获取文章归档 GetArticleArchive
@@ -65,7 +46,7 @@ exports.article_archive = async (req, res) => {
   const GetArticleArchive = await ExecuteFunc(GetArticleArchiveSql)
   const newArry = []
   GetArticleArchive.forEach((item) => {
-    const [year, month, day] = item.pub_date.split('-')
+    const [year] = item.pub_date.split('-')
     const obj = {
       id: item.id,
       month: item.pub_month,
@@ -87,8 +68,12 @@ exports.article_archive = async (req, res) => {
 exports.getNotifyList = async (req, res) => {
   // 查询通知 未删除且根据token的username不同来确保 whosee
   const user = req.query.user
-  const SelectNotifySql = `SELECT title,notify_id,pub_date from ev_notify where whosee = 0 AND state = 0 AND is_delete = 0`
-  const SelectNotify = await ExecuteFunc(SelectNotifySql)
+  const Num = Number(req.query.Num) >= 0 ? Number(req.query.Num) : 0
+  // 获取最新10条
+  const SelectAllNotifySql = `select * from ev_notify where is_delete = 0 and whosee = 0`
+  const SelectNotifySql = `SELECT title, notify_id, pub_date FROM ev_notify WHERE whosee = 0 AND state = 0 AND is_delete = 0 ORDER BY pub_date DESC LIMIT 20 offset ?`
+  const SelectNotify = await ExecuteFuncData(SelectNotifySql, Num)
+  const SelectAllNotify = await ExecuteFunc(SelectAllNotifySql)
   if (SelectNotify.length === 0) return res.cc('暂无通知', 409)
   if (user) {
     // 检查用户身份
@@ -96,21 +81,15 @@ exports.getNotifyList = async (req, res) => {
     const CheckUser = await ExecuteFuncData(CheckUserSql, user)
     if (CheckUser.length !== 0 && CheckUser[0].useridentity === 'manager') {
       // 获取所有能看的通知 包括管理员能看的
-      const SelectAllNotifySql = `SELECT * from ev_notify where state = 0 AND is_delete = 0`
-      const SelectAllNotify = await ExecuteFunc(SelectAllNotifySql)
+      const SelectAllManagerNotifySql = `SELECT * from ev_notify where state = 0 AND is_delete = 0 ORDER BY pub_date DESC LIMIT 20 offset ?`
+      const SelectAllManagerNotify = await ExecuteFuncData(SelectAllManagerNotifySql, Num)
       if (SelectAllNotify.length === 0) return res.cc('暂无通知', 409)
       res.status(200).send({
         message: '获取成功',
         status: 200,
-        data: SelectAllNotify,
+        data: SelectAllManagerNotify,
         ismessage: false,
-      })
-    } else {
-      res.status(200).send({
-        message: '获取成功',
-        status: 200,
-        data: SelectNotify,
-        ismessage: false,
+        Num: SelectAllNotify.length,
       })
     }
   } else {
@@ -119,6 +98,7 @@ exports.getNotifyList = async (req, res) => {
       status: 200,
       data: SelectNotify,
       ismessage: false,
+      Num: SelectAllNotify.length,
     })
   }
 }
@@ -146,8 +126,21 @@ exports.article_uget = async (req, res) => {
   let GetTheCurrentUsersArticles = []
   if (!isNaN(page)) {
     GetTheCurrentUsersArticles = await ExecuteFuncData(GetTheCurrentUsersArticlesSql, [user, page])
+    if (GetTheCurrentUsersArticles.length === 0)
+      return res.send({
+        message: '暂无更多数据！',
+        data: [],
+        Num: 0,
+        status: 204,
+      })
   }
-  if (GetALlNum.length === 0) return res.cc('空空如也，赶快发布属于你的新文章吧！')
+  if (GetALlNum.length === 0)
+    return res.send({
+      message: '空空如也，赶快发布属于你的新文章吧！',
+      data: [],
+      Num: 0,
+      status: 204,
+    })
   res.status(200).send({
     status: 200,
     message: '获取用户文章成功',
@@ -182,7 +175,7 @@ exports.article_put = async (req, res) => {
   const put_data = req.body
   const artIsMd = req.body.isMd === 'true'
   const message = req.body.state === '0' ? '发布文章成功' : '保存草稿成功！'
-  put_data.username = put_data.username !== null ? put_data.username : req.auth.username
+  put_data.username = req.auth.username
   put_data.pub_date = put_data.pub_date !== '' ? put_data.pub_date : config.pub_date
   put_data.pub_month = config.pub_month
   let UID = ''
@@ -200,7 +193,6 @@ exports.article_put = async (req, res) => {
       UID = config.generateMixed(4)
     }
   }
-  // console.log(UID)
   put_data.article_id = UID
   delete put_data.isMd
   // 插入文章 Insert article
@@ -261,16 +253,21 @@ exports.article_cag = async (req, res) => {
 
 // 获取名下图库
 exports.article_image = async (req, res) => {
-  const username = req.body.picusername
+  const Num = req.body.Num !== 'undefined' && Number(req.body.Num) >= 0 ? req.body.Num : 'all'
+  const username = req.body.picusername ? req.body.picusername : req.auth.username
   if (username === 'undefined') return res.cc('用户名不能为undefined', 204)
   // 获取名下图库 get Gallery
   const getGallerySql = 'select * from ev_userimage where username=? and state=0'
+  const getGalleryLimitSql = `select * from ev_userimage where username=? and state=0 limit 20 offset ?`
   const getGallery = await ExecuteFuncData(getGallerySql, username)
+  let getGalleryLimit = []
+  if (Num !== 'all') getGalleryLimit = await ExecuteFuncData(getGalleryLimitSql, [username, Num])
   if (getGallery.length === 0) return res.cc('空空如也')
   res.status(200).send({
     status: 200,
     message: '获取图片成功',
-    data: getGallery,
+    data: Num === 'all' ? getGallery : getGalleryLimit,
+    Num: getGallery.length,
   })
 }
 
@@ -278,7 +275,8 @@ exports.article_image = async (req, res) => {
 exports.article_upimage = async (req, res) => {
   const FileName = config.generateUserId(18) + '.' + req.file.originalname.split('.').pop()
   const Setpath = config.selpath + FileName
-  const username = req.body.username
+  const username = req.body.username ? req.body.username : req.auth.username
+  if (!username) return res.cc('参数错误！', 404)
   if (req.file.size > 10000 * 1024) return res.cc('文件太大！无法上传', 206)
   if (!/^image\/(jpeg|png|gif|bmp|webp|svg+xml|heic)$/.test(req.file.mimetype))
     return res.cc('不能上传非图片类的文件！', 206)
@@ -319,42 +317,38 @@ exports.article_upimage = async (req, res) => {
 // 删除名下图库照片const
 fs = require('fs')
 const util = require('util')
-const { pub_date } = require('../config')
 const unlink = util.promisify(fs.unlink)
-
+// 删除图像
 exports.article_imagedel = async (req, res) => {
-  const body = req.body
+  const id = req.body.id
+  const user = req.body.username ? req.body.username : req.auth.username
+  if (!id) return res.cc('错误参数', 404)
   // 查询图片资源是否存在
   const QueryWhetherTheImageResourceExistsSql = `SELECT * FROM ev_userimage WHERE username=? AND id=?`
   // 删除图片资源
   const DeleteImageResourceSql = `DELETE FROM ev_userimage WHERE id=?`
-
   try {
     const QueryWhetherTheImageResourceExists = await ExecuteFuncData(
       QueryWhetherTheImageResourceExistsSql,
-      [body.picusername, body.id],
+      [user, id],
     )
-
     if (QueryWhetherTheImageResourceExists.length === 0) {
       return res.cc('查询错误！', 406)
     }
-
     const filePath = `./public/${
       String(QueryWhetherTheImageResourceExists[0].userimage).match(/(?<=\/public\/).*/)[0]
     }`
-
     try {
       await unlink(filePath)
     } catch (err) {
       // console.log(err);
-      await ExecuteFuncData(DeleteImageResourceSql, body.id)
+      await ExecuteFuncData(DeleteImageResourceSql, id)
       return res.send({
         message: '系统找不到该文件/已删除',
         code: 406,
       })
     }
-
-    const DeleteImageResource = await ExecuteFuncData(DeleteImageResourceSql, body.id)
+    const DeleteImageResource = await ExecuteFuncData(DeleteImageResourceSql, id)
     if (DeleteImageResource.affectedRows !== 1) {
       return res.cc('执行失败', 406)
     }

@@ -43,6 +43,7 @@ exports.router_getSetting = async (req, res) => {
 // 后台面板 实现获取 改变 轮播
 exports.router_setLunbo = async (req, res) => {
   const getmet = req.body.met
+  if (!getmet) return res.cc('参数错误')
   if (getmet === 'get') {
     // 获取轮播图设置 Get carousel settings
     const GetCarouselSettingsSql = `select * from ev_setting where set_name='Lunbo'`
@@ -54,6 +55,7 @@ exports.router_setLunbo = async (req, res) => {
     })
   } else if (getmet === 'cag') {
     const data = JSON.parse(req.body.data)
+    data.set_time = config.pub_date
     const id = data.id
     // 更新轮播图设置 Update carousel settings
     const UpdateCarouselSettingsSql = `update ev_setting set ? where id=${id}`
@@ -75,7 +77,7 @@ exports.router_setLunbo = async (req, res) => {
 // 控制面板 实现获取 改变 发展历程的信息
 exports.router_setDevp = async (req, res) => {
   const getmet = req.body.met // 执行方法
-  const getUser = req.body.username
+  const getUser = req.auth.username
   if (getmet === 'get') {
     const sql = `select * from ev_setting where set_name='DevP'`
     const data = await ExecuteFunc(sql)
@@ -138,10 +140,10 @@ exports.router_setDevp = async (req, res) => {
   }
 }
 
-// 控制面板 实现获取 改变 发展历程的信息
+// 控制面板 实现获取 改变 友链的信息
 exports.router_setSpsList = async (req, res) => {
   const getmet = req.body.met
-  const getUser = req.body.username
+  const getUser = req.auth.username
   if (getmet === 'get') {
     const sql = `select * from ev_setting where set_name='PriceUser'`
     const data = await ExecuteFunc(sql)
@@ -170,7 +172,7 @@ exports.router_setSpsList = async (req, res) => {
     }
   } else if (getmet === 'add') {
     const data = JSON.parse(req.body.data)
-    data.set_time = config.pub_date
+    // data.set_time = config.pub_date
     data.set_user = getUser
     const sql = 'insert into ev_setting set ?'
     const state = await ExecuteFuncData(sql, data)

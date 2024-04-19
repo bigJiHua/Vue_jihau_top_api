@@ -20,54 +20,54 @@ const dayjs = require('dayjs')
 let d = new Date()
 const pub_date = dayjs(d).format('YYYY-MM-DD')
 const pub_month = dayjs(d).format('MM')
-// 生成随机ＵＩＤ
-const art_idnum = Math.floor(Math.random() * (100 - 10 + 1)) + 10
-let str = [
-  '0',
-  '1',
-  '2',
-  '3',
-  '4',
-  '5',
-  '6',
-  '7',
-  '8',
-  '9',
-  'A',
-  'B',
-  'C',
-  'D',
-  'E',
-  'F',
-  'G',
-  'H',
-  'I',
-  'J',
-  'K',
-  'L',
-  'M',
-  'N',
-  'O',
-  'P',
-  'Q',
-  'R',
-  'S',
-  'T',
-  'U',
-  'V',
-  'W',
-  'X',
-  'Y',
-  'Z',
-]
 // 随机数生成
 function generateMixed(n) {
   let res = ''
+  // 生成随机ＵＩＤ
+  const randomNumber = Math.floor(Math.random() * (100 - 10 + 1)) + 10
+  let str = [
+    '0',
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
+    'I',
+    'J',
+    'K',
+    'L',
+    'M',
+    'N',
+    'O',
+    'P',
+    'Q',
+    'R',
+    'S',
+    'T',
+    'U',
+    'V',
+    'W',
+    'X',
+    'Y',
+    'Z',
+  ]
   for (let i = 0; i < n; i++) {
     let id = Math.ceil(Math.random() * 35)
     res += str[id]
   }
-  return res + art_idnum
+  return res + randomNumber
 }
 // 中文过滤器
 function FilterContent(content, limit) {
@@ -96,7 +96,7 @@ const SelectContent = function (data, limit) {
 function filterSqlInjection(input, res) {
   // 定义要过滤的危险关键词的正则表达式
   const dangerousKeywords =
-    /(\b(ALTER|CREATE|DELETE|DROP|EXEC(UTE){0,1}|INSERT( +INTO){0,1}|MERGE|REPLACE|SELECT( +DISTINCT){0,1}|TRUNCATE|UPDATE)\b|\b(UNION( +ALL){0,1}|AND|OR|NOT|LIKE)\b)/i
+    /(\b(ALTER|CREATE|DELETE|DROP|EXEC(UTE)?|INSERT( +INTO){0,1}|MERGE|REPLACE|SELECT( +DISTINCT){0,1}|TRUNCATE|UPDATE)\b|\b(UNION( +ALL){0,1}|AND|OR|NOT|LIKE)\b)/i
   // 检查输入是否包含危险关键词
   if (dangerousKeywords.test(input)) {
     // TODO　写入ｅｒｏｏｒ表记录
@@ -111,7 +111,7 @@ function filterSqlInjection(input, res) {
 const jwtSecretKey = 'jihua is a good man !'
 // token的有效期
 const expiresIn = '10h'
-
+// 校验规则
 const options = {
   secret: jwtSecretKey,
   algorithms: ['HS256'],

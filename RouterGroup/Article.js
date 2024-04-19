@@ -39,11 +39,11 @@ router.post(
   article_function.article_put,
 ) // 新增文章
 router.post('/delart?', expressJoi(ArticleRoules.article_id_schema), article_function.article_del) // 删除文章
-router.get('/getart', expressJoi(ArticleRoules.article_get_schema), article_function.article_get) // 获取编辑文章
 router.post('/cagart', expressJoi(ArticleRoules.article_cag_schema), article_function.article_cag) // 修改文章
+router.get('/getart', expressJoi(ArticleRoules.article_get_schema), article_function.article_get) // 获取编辑文章
 router.post('/img', expressJoi(ArticleRoules.article_getimage), article_function.article_image) // 获取名下图片
 router.post(
-  '/upimg/',
+  '/upimg',
   async (req, res, next) => {
     await CheckUserPower(req, res, next, 'isupimg')
   },

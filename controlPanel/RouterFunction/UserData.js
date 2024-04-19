@@ -130,6 +130,7 @@ exports.CagUesrData = async (req, res) => {
     })
   }
 }
+
 // 修改和查询用户权限
 exports.CagUesrPower = async (req, res) => {
   let { data, user } = req.body
@@ -190,4 +191,81 @@ exports.CagUesrPower = async (req, res) => {
     default:
       return res.cc('类型错误！')
   }
+}
+
+// 发送站内信处理
+exports.sendMessage = async (req, res) => {
+  const { type, title, senduser, getuser, content, label } = req.body
+  const sendUser = req.auth.username
+  if(!sendUser) return res.cc('参数错误！', 404)
+  const data = {
+    type,
+    title,
+    senduser,
+    getuser,
+    label,
+    content: config.filterSqlInjection(content, res),
+    pub_date: new Date().getTime()
+  }
+  let SelectTable = 'ev_sitemsg'
+  // 单发用户
+  if (getuser !== 'all') {
+    if(!getuser) return res.cc('参数错误！', 404)
+    SelectTable = 'ev_usermsg'
+    data.senduser = sendUser
+  }
+  const SendMsgValueSql = `insert into ${SelectTable} set ?`
+  const SendMsgValue = await ExecuteFuncData(SendMsgValueSql,data)
+  if (SendMsgValue.affectedRows !== 1) return res.cc('发送失败！', 404)
+  res.send({
+    status: 200,
+    message: '发送成功！',
+  })
+}
+
+// 获取站内信列表 + 搜索功能
+exports.getMessage = async (req, res) => {
+  const GetNum = Number(req.query.num)
+  const key = config.filterSqlInjection(req.query.key, res)
+  // 获取所有文章数目 做分页
+  const GetALLArticlesAtATimeSql = `SELECT id FROM ev_sitemsg`
+  const GetALLArticlesAtATime = await ExecuteFunc(GetALLArticlesAtATimeSql)
+  const totalCount = GetALLArticlesAtATime.length // 文章总数
+  // 每次只获取10条文章
+  let GetOnly10SiteMessageSql = `SELECT * FROM ev_sitemsg LIMIT 10 OFFSET ?`
+  if (key !== '' && key !== 'undefined') {
+    GetOnly10SiteMessageSql = `Select * from ev_sitemsg where 
+              id like '%${key}%' or 'type' like'%${key}%' or 
+              label like '%${key}%' or senduser like '%${key}%' or 
+              getuser like '%${key}%' or content like '%${key}%' `
+  }
+  const GetOnly10SiteMessage = await ExecuteFuncData(GetOnly10SiteMessageSql, GetNum)
+  if (GetOnly10SiteMessage.length === 0) {
+    return res.send({
+      status: 204,
+      message: '暂无最新数据',
+      data: [],
+      totalNum: totalCount,
+    })
+  }
+  res.status(200).send({
+    status: 200,
+    message: '获取成功',
+    data: GetOnly10SiteMessage,
+    totalNum: totalCount,
+  })
+}
+
+// 删除/修改站内信状态
+exports.ChangeMessageData = async (req, res) => {
+  const {id,type} = req.body
+  if (!id) return res.cc( '缺少参数',404)
+  if (!type) return res.cc( '缺少参数',404)
+  if (type === 'delete') {
+    const UpdateMessageSql = `update ev_sitemsg set is_delete = 1 where id = ?`
+    const UpdateMessage = await ExecuteFuncData(UpdateMessageSql,id)
+    if (UpdateMessage.affectedRows !== 1) return res.cc( '删除失败',404)
+    res.cc( '删除成功',200)
+  }
+
 }

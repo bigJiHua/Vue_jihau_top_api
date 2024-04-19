@@ -10,24 +10,19 @@ const webapp = express()
 /* 中间件 */
 webapp.use(cors())
 webapp.use(
-  bodyParser.json({
-    limit: '10mb',
-  }),
-)
-webapp.use(
   bodyParser.urlencoded({
     limit: '10mb',
     extended: true,
   }),
 )
 // 配置解析session中间件
-webapp.use(
-  session({
-    secret: 'Keybard cat',
-    resave: false,
-    saveUninitialized: true,
-  }),
-)
+// webapp.use(
+//   session({
+//     secret: 'Keybard cat',
+//     resave: false,
+//     saveUninitialized: true,
+//   }),
+// )
 // 封装自定义全局中间件
 webapp.use((req, res, next) => {
   res.cc = function (err, status) {
@@ -36,7 +31,7 @@ webapp.use((req, res, next) => {
       message: err instanceof Error ? err.message : err,
     })
   }
-  // console.log(req.url)
+  // console.log(req.headers)
   next()
 })
 /* 中间件 */
@@ -63,6 +58,7 @@ const path = require('path')
 webapp.get('/api/image', async (req, res) => {
   const shortCode = req.query.code
   console.log(shortCode)
+  if (!shortCode) return res.cc('非法请求')
   const Sle = `Select * from ev_userimage where data = ?`
   const Sdjn = await ExecuteFuncData(Sle, shortCode)
   const filePath = `./public/${String(Sdjn[0].userimage).match(/(?<=\/public\/).*/)[0]}`

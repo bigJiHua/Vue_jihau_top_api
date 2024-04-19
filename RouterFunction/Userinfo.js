@@ -34,35 +34,18 @@ exports.authData = async (req, res) => {
   const data = {
     goodnums: 0,
     collects: 0,
-    comments: 0,
     articles: 0,
     Users: {},
   }
   // 获取用户基本数据
   const GetUserDataSql = `select username,user_id,useridentity,user_pic,user_content from ev_users where username=?`
-  // 查询点赞
-  const sqlg = `select
-    s.title,s.article_id,s.cover_img,s.username,s.content,d.id
-    from ev_userartdata d,ev_articles s
-    where d.article_id = s.article_id
-    and d.goodnum = 1 and d.username=?`
-  // 查询收藏
-  const sqls = `select
-    s.title,s.article_id,s.cover_img,s.username,s.content,d.id
-    from ev_userartdata d,ev_articles s
-    where d.article_id = s.article_id
-    and d.collect = 1 and d.username=?`
-  // 查询评论
-  const sqlc = `select
-    s.article_id,s.title,s.username,d.comment,d.pub_date,s.cover_img,d.id
-    from ev_usercomment d,ev_articles s
-    where d.article_id = s.article_id
-    and d.username=?`
+  const SelectGCDataSql = `SELECT SUM(CASE WHEN goodnum = '1' THEN 1 ELSE 0 END) AS goodnums,
+        SUM(CASE WHEN collect = '1' THEN 1 ELSE 0 END) AS collects FROM ev_userartdata WHERE username = ?`
   const sqla = `select  * from ev_articles where username =?  `
-  const sqlF = `select * from ev_usercount where author =? AND relation = 1`
-  data.goodnums = (await ExecuteFuncData(sqlg, UN)).length
-  data.collects = (await ExecuteFuncData(sqls, UN)).length
-  data.comments = (await ExecuteFuncData(sqlc, UN)).length
+  const sqlF = `select * from ev_userrelation where author =? AND relation = 1`
+  const SelectGCData = await ExecuteFuncData(SelectGCDataSql, UN)
+  data.goodnums = SelectGCData[0].goodnums
+  data.collects = SelectGCData[0].collects
   data.articles = (await ExecuteFuncData(sqla, UN)).length
   data.Users = (await ExecuteFuncData(GetUserDataSql, UN))[0]
   data.Users.fans = (await ExecuteFuncData(sqlF, UN)).length
@@ -80,18 +63,9 @@ exports.getUserInfoUN = async (req, res) => {
   const data = {}
   // 获取用户基本数据
   const GetUserDataSql = `select * from ev_users where username=?`
-  // 查询点赞
-  const sqlg = `select
-    s.title,s.article_id,s.cover_img,s.username,s.content,d.id
-    from ev_userartdata d,ev_articles s
-    where d.article_id = s.article_id
-    and d.goodnum = 1 and d.username=?`
-  // 查询收藏
-  const sqls = `select
-    s.title,s.article_id,s.cover_img,s.username,s.content,d.id
-    from ev_userartdata d,ev_articles s
-    where d.article_id = s.article_id
-    and d.collect = 1 and d.username=?`
+  // 查询点赞\收藏
+  const SelectGCDataSql = `SELECT SUM(CASE WHEN goodnum = '1' THEN 1 ELSE 0 END) AS goodnums,
+        SUM(CASE WHEN collect = '1' THEN 1 ELSE 0 END) AS collects FROM ev_userartdata WHERE username = ?`
   // 查询评论
   const sqlc = `select
     s.article_id,s.title,s.username,d.comment,d.pub_date,s.cover_img,d.id
@@ -99,10 +73,11 @@ exports.getUserInfoUN = async (req, res) => {
     where d.article_id = s.article_id
     and d.username=?`
   const sqla = `select  * from ev_articles where username =?  `
-  const sqlF = `select * from ev_usercount where author =? AND relation = 1`
+  const sqlF = `select * from ev_userrelation where author =? AND relation = 1`
   const sqlP = `select * from ev_userpower where username = ?`
-  data.goodnums = (await ExecuteFuncData(sqlg, UN)).length
-  data.collects = (await ExecuteFuncData(sqls, UN)).length
+  const SelectGCData = await ExecuteFuncData(SelectGCDataSql, UN)
+  data.goodnums = SelectGCData[0].goodnums
+  data.collects = SelectGCData[0].collects
   data.comments = (await ExecuteFuncData(sqlc, UN)).length
   data.articles = (await ExecuteFuncData(sqla, UN)).length
   const GetUserData = await ExecuteFuncData(GetUserDataSql, UN)
@@ -140,6 +115,7 @@ exports.cagUserInfo = async (req, res) => {
   })
 }
 
+// 查权限
 exports.cagUserPower = async (req, res) => {
   const type = req.body.type
   const value = req.body.value === 'true' ? 1 : 0
@@ -207,145 +183,68 @@ exports.delUserInfo = async (req, res) => {
   }
 }
 
-// 用户行动 点赞 收藏 评论 或者取反操作
-function action(body) {
-  switch (body.type) {
-    case 'goodnum':
-      return {
-        message: '点赞',
-        data: {
-          username: body.username,
-          goodnum: 1,
-          article_id: body.articleid,
-        },
-      }
-    case 'collect':
-      return {
-        message: '收藏',
-        data: {
-          username: body.username,
-          collect: 1,
-          article_id: body.articleid,
-        },
-      }
-    case 'comment':
-      return {
-        message: '评论',
-        data: {
-          username: body.username,
-          comment: body.comment,
-          article_id: body.articleid,
-          pub_date: config.pub_date,
-        },
-      }
-    default:
-      // 处理未知的类型
-      return {
-        message: '未知操作类型',
-        data: null,
-      }
-  }
-}
-// 取消操作
-function clearaction(body) {
-  switch (body.type) {
-    case 'goodnum':
-      return {
-        clemessage: '取消点赞',
-        cledata: {
-          username: body.username,
-          goodnum: 0,
-          article_id: body.articleid,
-        },
-      }
-    case 'collect':
-      return {
-        clemessage: '取消收藏',
-        cledata: {
-          username: body.username,
-          collect: 0,
-          article_id: body.articleid,
-        },
-      }
-    default:
-      // 处理未知的类型
-      return {
-        message: '未知操作类型',
-        data: null,
-      }
-  }
-}
-
-// 用户操作
+// 用户操作 点赞评论收藏等
 exports.UserActive = async (req, res) => {
-  const { username, articleid, type } = req.body
-  const { message, data } = action(req.body)
-  const { clemessage, cledata } = clearaction(req.body)
+  const username = req.auth.username
+  const { articleid, type, comment } = req.body
+  const timeType = type !== 'comment' && type === 'goodnum' ? 'goodtime' : 'collecttime'
   // 判断type 用于区分作者是点赞收藏还是评论
   if (type === 'goodnum' || type === 'collect') {
-    data.user_id = req.auth.user_id
     // 查询这个用户之前有没有操作过 （如果有操作过是可以查询到article_id的）
     // 校验用户操作 Verify user actions
     const VerifyUserActionsSql =
       'select article_id from ev_userartdata where username=? and article_id=?'
     const VerifyUserActions = await ExecuteFuncData(VerifyUserActionsSql, [username, articleid])
     // 如果没有操作过 则新插入
-    if (VerifyUserActions.length === 0) {
+    if (VerifyUserActions.length <= 0) {
       // 插入用户操作 InsertUserAction
       const InsertUserActionSql = 'insert into ev_userartdata set ?'
-      const InsertUserAction = await ExecuteFuncData(InsertUserActionSql, data)
-      if (InsertUserAction.affectedRows !== 1) return res.cc(`${message}失败`)
+      const InsertUserAction = await ExecuteFuncData(InsertUserActionSql, [
+        {
+          username,
+          article_id: articleid,
+          [type]: 1,
+          user_id: req.auth.user_id,
+          [timeType]: new Date().getTime(),
+        },
+      ])
+      if (InsertUserAction.affectedRows !== 1) return res.cc('失败')
       res.send({
         status: 200,
-        message: `${message}成功`,
+        message: `成功`,
+      })
+    } else {
+      // 如果操作过 则更新之前的操作 【例如 点赞、收藏变为取消】
+      const ChangUserArtDataSql = `UPDATE ev_userartdata SET ${type} = IF(${type} = '0', '1', '0') WHERE username = ? AND article_id = ?`
+      const ChangUserArtData = await ExecuteFuncData(ChangUserArtDataSql, [username, articleid])
+      if (ChangUserArtData.affectedRows !== 1) return res.cc('失败')
+      // 插入用户操作时间戳
+      const InsertUserTimeSql = 'update ev_userartdata set ? where username = ? and article_id = ?'
+      const InsertUserTime = await ExecuteFuncData(InsertUserTimeSql, [
+        {
+          [timeType]: new Date().getTime(),
+        },
+        username,
+        articleid,
+      ])
+      if (InsertUserTime.affectedRows !== 1) return res.cc('失败')
+      res.send({
+        status: 200,
+        message: `成功`,
       })
     }
-    // 如果操作过 则更新之前的操作 【例如 点赞、收藏变为取消】
-    if (VerifyUserActions.length > 0) {
-      // 检测用户是否对该文章进行操作 Detect whether the user has acted on the article
-      const DetectWhetherTheUserHasActedOnTheArticleSql = `select ${type} from ev_userartdata where username=? and article_id=?`
-      const DetectWhetherTheUserHasActedOnTheArticle = await ExecuteFuncData(
-        DetectWhetherTheUserHasActedOnTheArticleSql,
-        [username, articleid],
-      )
-      if (DetectWhetherTheUserHasActedOnTheArticle.length === 0) return res.cc('操作错误')
-      const rval0 = JSON.parse(JSON.stringify(DetectWhetherTheUserHasActedOnTheArticle))[0]
-      const k = Object.values(rval0)[0]
-      // k = 1 意思就是查到的操作在该文章已经点赞过或者收藏过，则就 反向操作进行取消
-      if (k === '1') {
-        // 变更用户操作 change user action
-        const changeUserActionSql = 'update ev_userartdata set ? where username=? and article_id=?'
-        const changeUserAction = await ExecuteFuncData(changeUserActionSql, [
-          cledata,
-          username,
-          articleid,
-        ])
-        if (changeUserAction.affectedRows !== 1) return res.cc('操作失败')
-        res.status(200).send({
-          status: 200,
-          message: clemessage + '成功',
-        })
-      } else {
-        // 未对该文章进行过点赞收藏的
-        const changeUserActionSql = 'update ev_userartdata set ? where username=? and article_id=?'
-        const changeUserAction = await ExecuteFuncData(changeUserActionSql, [
-          data,
-          username,
-          articleid,
-        ])
-        if (changeUserAction.affectedRows !== 1) return res.cc('操作失败')
-        res.status(200).send({
-          status: 200,
-          message: message + '成功',
-        })
-      }
-    }
   } else if (type === 'comment') {
-    data.commentid = config.generateUserId(12)
+    const data = {
+      username,
+      comment,
+      article_id: articleid,
+      pub_date: config.pub_date,
+      commentid: config.generateUserId(12),
+    }
     // 插入用户评论 insert user comment
     const insertUserCommentSql = 'insert into ev_usercomment set ?'
     const insertUserComment = await ExecuteFuncData(insertUserCommentSql, data)
-    if (insertUserComment.affectedRows !== 1) return res.cc(`${message}失败`)
+    if (insertUserComment.affectedRows !== 1) return res.cc(`评论失败`)
     res.status(200).send({
       status: 200,
       message: '评论成功!',
@@ -422,4 +321,201 @@ exports.UserDelActive = async (req, res) => {
       message: '用户名不能为undefined',
     })
   }
+}
+
+// Space页面获取的数据
+exports.getSpaceData = async (req, res) => {
+  const { isSelf, UserData } = req.body
+  res.send({
+    status: 200,
+    message: '获取成功',
+    data: {
+      isSelf,
+      UserData,
+    },
+  })
+}
+
+// 构建用户关系
+exports.postUserRelation = async (req, res) => {
+  // 只用传一个参数 那就是 author 要对谁操作
+  const author = req.body.author
+  const username = req.auth.username
+  const data = {
+    author,
+    author_id: '',
+    username,
+    relation: 0,
+    user_id: req.auth.user_id,
+    pub_date: new Date().getTime(),
+  }
+  if (!author) return res.cc('参数异常', 404)
+  if (!username) return res.cc('参数异常', 404)
+  if (author === username) return res.cc('你很酷，但是不能自己哟！', 404)
+  // 查关系型数据库表是否存在关系
+  const SelectUserRelationSql = `select * from ev_userrelation where author = ? and username = ?`
+  const SelectUserRelation = await ExecuteFuncData(SelectUserRelationSql, [author, username])
+  // 获取author目标用户的id
+  const SelectAuthorIdSql = `select user_id from ev_users where username = ?`
+  const SelectAuthorId = await ExecuteFuncData(SelectAuthorIdSql, author)
+  if (SelectAuthorId.length === 0) return res.cc('用户不存在', 404)
+  data.author_id = SelectAuthorId[0].user_id
+  // 如果没有历史关系就添加
+  if (SelectUserRelation.length === 0) {
+    const InsertUserRelationSql = `insert into ev_userrelation set ?`
+    const InsertUserRelation = await ExecuteFuncData(InsertUserRelationSql, data)
+    if (InsertUserRelation.affectedRows !== 1) return res.cc('操作失败', 500)
+    res.send({
+      status: 200,
+      message: '操作成功',
+    })
+  } else {
+    // 如果有历史关系就修改
+    const PatchUserRelationSql = `
+          UPDATE ev_userrelation
+          SET relation = CASE
+                           WHEN relation = 0 THEN 1
+                           WHEN relation = 1 THEN 0
+                         END,
+              pub_date = UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000
+          WHERE author = ? AND username = ?`
+    const PatchUserRelation = await ExecuteFuncData(PatchUserRelationSql, [author, username])
+    if (PatchUserRelation.affectedRows !== 1) return res.cc('操作失败', 500)
+    res.send({
+      status: 200,
+      message: '操作成功',
+    })
+  }
+}
+
+// 查询用户关系
+exports.getUserRelation = async (req, res) => {
+  const { author, met } = req.query
+  const Num = Number(req.query.Num)
+  const username = req.auth.username
+  let relation = false
+  if (!author) return res.cc('参数异常', 404)
+  if (met === 'get' && author === username) return res.cc('参数异常', 404)
+  let SelectUserRelationSql = ''
+  let SelectUserRelation = []
+  switch (met) {
+    // 获取关系
+    case 'get': {
+      SelectUserRelationSql = `select * from ev_userrelation where author = ? and username = ?`
+      break
+    }
+    // 获取关注列表
+    case 'conlist': {
+      SelectUserRelationSql = `
+          SELECT UD.username, UD.user_id, UD.user_pic, UD.user_content
+          FROM ev_userrelation URL
+          INNER JOIN ev_users UD ON URL.author = UD.username
+          WHERE URL.author = ? AND URL.relation = 0
+          LIMIT 10 OFFSET ?`
+      break
+    }
+    // 获取粉丝列表
+    case 'Beflist': {
+      SelectUserRelationSql = `
+          SELECT UD.username, UD.user_id, UD.user_pic, UD.user_content
+          FROM ev_userrelation URL
+          INNER JOIN ev_users UD ON URL.username = UD.username
+          WHERE URL.author = ? AND URL.relation = 0
+          LIMIT 10 OFFSET ?`
+      break
+    }
+    default: {
+      return res.cc('参数异常', 404)
+    }
+  }
+  if (met === 'get') {
+    SelectUserRelation = await ExecuteFuncData(SelectUserRelationSql, [author, username])
+  } else {
+    SelectUserRelation = await ExecuteFuncData(SelectUserRelationSql, [author, Num])
+  }
+  // 如果查询为空
+  if (SelectUserRelation.length === 0)
+    return res.send({
+      status: 200,
+      message: '获取成功',
+      ismessage: false,
+      data: {
+        relation: false,
+        conlist: met === 'conlist' ? SelectUserRelation : [],
+        Beflist: met === 'Beflist' ? SelectUserRelation : [],
+      },
+    })
+  relation = SelectUserRelation[0].relation === 0
+  // 如果不为空
+  res.send({
+    status: 200,
+    message: '获取成功',
+    ismessage: false,
+    data: {
+      relation,
+      conlist: met === 'conlist' ? SelectUserRelation : [],
+      Beflist: met === 'Beflist' ? SelectUserRelation : [],
+    },
+  })
+}
+
+// 用户消息列表
+exports.UserMessageHandler = async (req, res) => {
+  const userId = req.auth.user_id
+  const Num = Number(req.query.Num)
+  if (!userId) return res.cc('参数错误！', 401)
+  // 获取消息并且做分页
+  // 获取用户消息
+  const SelectUserMessageBytodaySql = `
+    SELECT u.username AS sendU,u.user_pic AS sendUP,u1.user_pic AS getUp,u1.username AS getU,um.type, um.title, um.content, um.pub_date, um.id, um.state
+    FROM ev_usermsg um
+    JOIN ev_users u ON um.senduser = u.user_id
+    JOIN ev_users u1 ON um.getuser = u1.user_id
+    WHERE um.is_delete = 0 AND u.state = 0 AND um.getuser = ?
+    LIMIT 10 OFFSET ?`
+  const SelectUserMessageBytoday = await ExecuteFuncData(SelectUserMessageBytodaySql, [userId, Num])
+  // 获取全体用户消息
+  const SelectAllSystemMessageBytodaySql = `Select * from ev_sitemsg where getuser = 'all' limit 10 offset ?`
+  const SelectAllSystemMessageBytoday = await ExecuteFuncData(SelectAllSystemMessageBytodaySql, Num)
+  // 获取系统对用户发送的消息
+  const SelectSystemMessageBytodaySql = `Select * from ev_sitemsg where getuser = ? limit 10 offset ?`
+  const SelectSystemMessageBytoday = await ExecuteFuncData(SelectSystemMessageBytodaySql, [
+    userId,
+    Num,
+  ])
+  res.send({
+    status: 200,
+    message: '获取消息成功',
+    ismessage: false,
+    data: {
+      usermsg: SelectUserMessageBytoday,
+      systemmsg: [...SelectAllSystemMessageBytoday, ...SelectSystemMessageBytoday],
+    },
+  })
+}
+
+// 用户删除消息
+exports.ChangeMessageHandler = async (req,res) => {
+  const id = req.body.id
+  const user = req.auth.user_id
+  const type = req.body.type
+  let setData = ''
+  if (type === 'read') {
+    setData = 'state = 1'
+  }else if (type === 'delete') {
+    setData = 'is_delete = 1'
+  }
+  let UpdateMessageSql = `update ev_usermsg set ${setData} where id = ? and getuser = ?`
+  await ExecuteFuncData(UpdateMessageSql, [id, user])
+      .then(result => {
+        if (result.affectedRows !== 1) return res.cc('删除失败', 404)
+      })
+  res.cc('成功', 200)
+}
+
+
+exports.authArticleData = async (req, res) => {
+  const { user, Num } = req.body
+  if (!user) return res.cc('参数异常', 404)
+  const num = Number(Num)
 }

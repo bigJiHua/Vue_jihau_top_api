@@ -5,15 +5,32 @@ const ExecuteFunc = require('../Implement/ExecuteFunction')
 
 // 获取文章内容
 exports.getArticle = async (req, res) => {
+  // 这个接口只读取文章，不对其它数据进行获取
   const UID = req.query.id
+  const data = { article: '' }
+  // 查询文章是否删除 Query whether the article is deleted
+  const QueryArticleIsDeleteSql = `select * from ev_articles where article_id=? and state = 0 and is_delete=0`
+  const QueryArticleIsDelete = await ExecuteFuncData(QueryArticleIsDeleteSql, UID)
+  if (QueryArticleIsDelete.length === 0) {
+    return res.cc('404 NOT FOUNT', 404)
+  } else {
+    data.article = QueryArticleIsDelete[0]
+    res.status(200).send({
+      status: 200,
+      message: '获取文章成功',
+      data: data,
+    })
+  }
+}
+// 获取文章数据，评论加载等等
+exports.getArticleData = async (req, res) => {
+  const UID = req.query.id
+  if (!UID) return res.cc('参数错误！', 304)
   const data = {
-    article: '',
     comment: '',
     goodnum: 0,
     collect: 0,
   }
-  // 查询文章是否删除 Query whether the article is deleted
-  const QueryArticleIsDeleteSql = `select * from ev_articles where article_id=? and state = 0 and is_delete=0`
   // 查询该文章的点赞和评论数 Query article user operations
   const QueryArticleUserOperationsSql = `select
         ev_userartdata.goodnum,ev_userartdata.collect
@@ -27,40 +44,31 @@ exports.getArticle = async (req, res) => {
   // 添加阅读数 Update Read Num TODO test 测试阶段 开放此接口 让数据量上涨
   const UpdateReadNumSql = `UPDATE ev_articles  SET read_num = read_num + 1  WHERE article_id =? AND is_delete = 0; `
   await ExecuteFuncData(UpdateReadNumSql, UID)
-  // 查询文章是否删除 Query whether the article is deleted
-  const QueryArticleIsDelete = await ExecuteFuncData(QueryArticleIsDeleteSql, UID)
-  if (QueryArticleIsDelete.length === 0) {
-    return res.cc('404 NOT FOUNT', 404)
-  } else {
-    data.article = QueryArticleIsDelete[0]
-    // 查询该文章的点赞和评论数 Query article user operations
-    const QueryArticleUserOperations = await ExecuteFuncData(QueryArticleUserOperationsSql, UID)
-    const newArry = JSON.parse(JSON.stringify(QueryArticleUserOperations))
-    for (let key in newArry) {
-      data.goodnum += parseInt(newArry[key].goodnum)
-      data.collect += parseInt(newArry[key].collect)
-    }
-    // 获取当前登录的用户是否给当前文章点赞和收藏 Query whether the article user has operated
-    if (req.query.user && req.query.user !== '') {
-      const QueryWhetherTheArticleUserHasOperated = await ExecuteFuncData(
-        QueryWhetherTheArticleUserHasOperatedSql,
-        [UID, req.query.user],
-      )
-      const getdata = JSON.parse(JSON.stringify(QueryWhetherTheArticleUserHasOperated))[0]
-      if (getdata) {
-        data.acgoodnum = parseInt(getdata.goodnum) === 1
-        data.accollect = parseInt(getdata.collect) === 1
-      }
-    }
-    // 查询文章评论 Query article comments
-    const QueryArticleComments = await ExecuteFuncData(QueryArticleCommentsSql, UID)
-    data.comment = QueryArticleComments
-    res.status(200).send({
-      status: 200,
-      message: '获取文章成功',
-      data: data,
-    })
+  // 查询该文章的点赞和评论数 Query article user operations
+  const QueryArticleUserOperations = await ExecuteFuncData(QueryArticleUserOperationsSql, UID)
+  const newArry = JSON.parse(JSON.stringify(QueryArticleUserOperations))
+  for (let key in newArry) {
+    data.goodnum += parseInt(newArry[key].goodnum)
+    data.collect += parseInt(newArry[key].collect)
   }
+  // 获取当前登录的用户是否给当前文章点赞和收藏 Query whether the article user has operated
+  if (req.authData && req.authData.username !== null) {
+    const QueryWhetherTheArticleUserHasOperated = await ExecuteFuncData(
+        QueryWhetherTheArticleUserHasOperatedSql,
+        [UID, req.authData.username],
+    )
+    data.acgoodnum = parseInt(QueryWhetherTheArticleUserHasOperated[0].goodnum) === 1
+    data.accollect = parseInt(QueryWhetherTheArticleUserHasOperated[0].collect) === 1
+  }
+  // 查询文章评论 Query article comments
+  const QueryArticleComments = await ExecuteFuncData(QueryArticleCommentsSql, UID)
+  data.comment = QueryArticleComments
+  res.status(200).send({
+    status: 200,
+    message: '成功',
+    data: data,
+    ismessage: false,
+  })
 }
 // 获取通知
 exports.getPage = async (req, res) => {
@@ -96,6 +104,7 @@ exports.getPage = async (req, res) => {
     data: data,
   })
 }
+
 // 5秒后增加阅读数
 exports.UpdateReadNum = async (req, res) => {
   const UID = req.query.id
@@ -147,7 +156,7 @@ exports.SearchApi = async (req, res) => {
     SearchQuerySql = `SELECT * FROM ${tableName} WHERE 
     (${SelectId} LIKE '%${filterKey}%' OR username LIKE '%${filterKey}%' OR content LIKE '%${filterKey}%'
     OR title LIKE '%${filterKey}%' OR pub_date LIKE '%${filterKey}%' OR lable LIKE '%${filterKey}%'
-    OR keyword LIKE '%${filterKey}%')${stateCondition} `
+    OR keyword LIKE '%${filterKey}%')${stateCondition} Limit 10 `
   } else {
     // 搜索表为用户表
     SearchQuerySql = `SELECT user_content,user_id,user_pic,useridentity,username
