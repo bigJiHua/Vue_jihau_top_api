@@ -52,13 +52,15 @@ exports.getArticleData = async (req, res) => {
     data.collect += parseInt(newArry[key].collect)
   }
   // 获取当前登录的用户是否给当前文章点赞和收藏 Query whether the article user has operated
-  if (req.authData && req.authData.username !== null) {
+  if (req.authData !== undefined && req.authData.username !== null) {
     const QueryWhetherTheArticleUserHasOperated = await ExecuteFuncData(
-        QueryWhetherTheArticleUserHasOperatedSql,
-        [UID, req.authData.username],
+      QueryWhetherTheArticleUserHasOperatedSql,
+      [UID, req.authData.username],
     )
-    data.acgoodnum = parseInt(QueryWhetherTheArticleUserHasOperated[0].goodnum) === 1
-    data.accollect = parseInt(QueryWhetherTheArticleUserHasOperated[0].collect) === 1
+    if (QueryWhetherTheArticleUserHasOperated.length !== 0) {
+      data.acgoodnum = parseInt(QueryWhetherTheArticleUserHasOperated[0].goodnum) === 1
+      data.accollect = parseInt(QueryWhetherTheArticleUserHasOperated[0].collect) === 1
+    }
   }
   // 查询文章评论 Query article comments
   const QueryArticleComments = await ExecuteFuncData(QueryArticleCommentsSql, UID)
@@ -169,5 +171,24 @@ exports.SearchApi = async (req, res) => {
     status: 200,
     message: '搜索成功！',
     data: config.SelectContent(SearchQuery, 30),
+  })
+}
+
+// 做站点地图
+exports.sitemapData = async (req, res) => {
+  const article = await ExecuteFunc(
+      'SELECT article_id,pub_date FROM ev_articles WHERE state = 0 AND is_delete = 0'
+  )
+  const notify = await ExecuteFunc(
+      'SELECT notify_id,pub_date FROM ev_notify WHERE whosee = 0 AND state = 0 AND is_delete = 0'
+  )
+  res.send({
+    status: 200,
+    message: '获取成功',
+    ismessage: false,
+    data: {
+      article,
+      notify
+    }
   })
 }

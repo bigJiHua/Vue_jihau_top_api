@@ -42,24 +42,25 @@ exports.article_list = async (req, res) => {
 
 // 获取文章归档 GetArticleArchive
 exports.article_archive = async (req, res) => {
-  const GetArticleArchiveSql = `select * from ev_articles where is_delete=0`
-  const GetArticleArchive = await ExecuteFunc(GetArticleArchiveSql)
-  const newArry = []
-  GetArticleArchive.forEach((item) => {
-    const [year] = item.pub_date.split('-')
-    const obj = {
-      id: item.id,
-      month: item.pub_month,
-      title: item.title,
-      hurl: item.article_id,
-      year: Number(year),
-    }
-    newArry.push(obj)
-  })
+  const key = req.query.key
+  let data = []
+  const GetArticleArchiveSql = `
+        SELECT YEAR(pub_date) AS year, MONTH(pub_date) AS month
+        FROM ev_articles
+        GROUP BY YEAR(pub_date), MONTH(pub_date)
+        ORDER BY YEAR(pub_date) DESC, MONTH(pub_date) ASC;`
+  data = await ExecuteFunc(GetArticleArchiveSql)
+  if (req.query.type === 'get') {
+    if (!key) return res.cc('参数不全')
+    const SelectYearMonthListSql = `SELECT title,article_id FROM ev_articles WHERE pub_date LIKE ? limit 15`
+    const SelectYearMonthList = await ExecuteFuncData(SelectYearMonthListSql, key)
+    if (SelectYearMonthList.length === 0) return res.cc('参数有误')
+    data = SelectYearMonthList
+  }
   res.status(200).send({
     status: 200,
     message: '获取成功',
-    data: newArry,
+    data,
     ismessage: false,
   })
 }
@@ -83,8 +84,8 @@ exports.getNotifyList = async (req, res) => {
       // 获取所有能看的通知 包括管理员能看的
       const SelectAllManagerNotifySql = `SELECT * from ev_notify where state = 0 AND is_delete = 0 ORDER BY pub_date DESC LIMIT 20 offset ?`
       const SelectAllManagerNotify = await ExecuteFuncData(SelectAllManagerNotifySql, Num)
-      if (SelectAllNotify.length === 0) return res.cc('暂无通知', 409)
-      res.status(200).send({
+      if (SelectAllManagerNotify.length === 0) return res.cc('暂无通知', 409)
+      return res.status(200).send({
         message: '获取成功',
         status: 200,
         data: SelectAllManagerNotify,
@@ -92,15 +93,14 @@ exports.getNotifyList = async (req, res) => {
         Num: SelectAllNotify.length,
       })
     }
-  } else {
-    res.status(200).send({
-      message: '获取成功',
-      status: 200,
-      data: SelectNotify,
-      ismessage: false,
-      Num: SelectAllNotify.length,
-    })
   }
+  res.status(200).send({
+    message: '获取成功',
+    status: 200,
+    data: SelectNotify,
+    ismessage: false,
+    Num: SelectAllNotify.length,
+  })
 }
 
 // 查找名下的文章

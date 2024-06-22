@@ -61,12 +61,12 @@ exports.sendMessage = {
     senduser: joi.string().required(),
     getuser: joi.string().required(),
     content: joi.string().required(),
-    label: joi.string().required()
+    label: joi.string().required(),
   },
 }
 exports.getMessage = {
   data: {
     num: joi.string().required(),
-    key: joi.string()
-  }
+    key: joi.string(),
+  },
 }

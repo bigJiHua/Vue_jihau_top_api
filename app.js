@@ -21,16 +21,18 @@ webapp.use(
 //     secret: 'Keybard cat',
 //     resave: false,
 //     saveUninitialized: true,
-//   }),
+//   })
 // )
 // 封装自定义全局中间件
-webapp.use((req, res, next) => {
+const { setUserPXData } = require('./Implement/ExecuteUserData')
+webapp.use(async (req, res, next) => {
   res.cc = function (err, status) {
     res.status(status === undefined ? 206 : status).send({
       status: status,
       message: err instanceof Error ? err.message : err,
     })
   }
+  await setUserPXData(req,res)
   // console.log(req.headers)
   next()
 })
@@ -43,12 +45,14 @@ const get_data_Router = require('./RouterGroup/Data')
 const userinfo_Router = require('./RouterGroup/Userinfo')
 const setting_Router = require('./RouterGroup/Setting')
 const user_mail_Router = require('./RouterGroup/Mail')
-// 控制面板接口
-const CtrlAPIPort = require('./controlPanel/RouterGroup/CtrlApiPort')
+const CtrlAPIPort = require('./controlPanel/RouterGroup/CtrlApiPort') // 控制面板接口
+const CountRG = require('./calculation/RouterGroup/Count') // 数据计算接口
+
 webapp.use('/api/article', expressJWT(config.options), article_list_router) // 权限接口 获取用户文章
 webapp.use('/api/users', expressJWT(config.options), userinfo_Router) // 权限接口 用户信息的增删改查
 webapp.use('/api/setting', expressJWT(config.options), setting_Router) // 权限接口 管理员修改站点信息
-webapp.use('/api/Ctrl', expressJWT(config.options), CtrlAPIPort) // 权限接口 后天管理面板接口 严格控制
+webapp.use('/api/Ctrl', expressJWT(config.options), CtrlAPIPort) // 权限接口 后台管理面板接口 严格控制
+webapp.use('/Count', CountRG)
 webapp.use('/api/my', user_login_Router) // 登录注册 非权限接口
 webapp.use('/api/getmail', user_mail_Router) // 获取验证码 非权限接口
 webapp.use('/api/data', get_data_Router) // get数据接口 非权限接口

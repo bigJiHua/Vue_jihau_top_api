@@ -41,4 +41,5 @@ router.get('/spaceart', expressJoi(userinfoRules.authArticleData), space_Router.
 router.get('/spacecol', expressJoi(userinfoRules.authArticleData), space_Router.spaceCol) // 获取作者收藏
 router.get('/spacelike', expressJoi(userinfoRules.authArticleData), space_Router.spaceLike) // 获取作者喜欢
 router.get('/relation', expressJoi(userinfoRules.getRelationData), space_Router.getUserRelation) // 查两人关系 以及获取关系列表
+router.get('/sitemap', get_archives_Router.sitemapData) // 获取sitemap数据
 module.exports = router

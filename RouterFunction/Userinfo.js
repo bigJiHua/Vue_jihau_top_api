@@ -29,17 +29,32 @@ exports.getUserInfoList = async (req, res) => {
 
 // 文章面板获取用户信息
 exports.authData = async (req, res) => {
-  const UN = req.query.user
-  if (UN === 'null') return res.cc('错误！', 404)
+  const ID = req.query.id
+  if (!ID || Number(ID) === 404) return res.cc('参数错误！', 404)
   const data = {
     goodnums: 0,
     collects: 0,
     articles: 0,
     Users: {},
   }
+  let UserData = []
   // 获取用户基本数据
-  const GetUserDataSql = `select username,user_id,useridentity,user_pic,user_content from ev_users where username=?`
-  const SelectGCDataSql = `SELECT SUM(CASE WHEN goodnum = '1' THEN 1 ELSE 0 END) AS goodnums,
+  const GetUserDataSql = `SELECT u.username, u.user_id, u.useridentity, u.user_pic, u.user_content  
+        FROM ev_users u  
+        JOIN ev_articles a ON u.username = a.username  
+        WHERE a.article_id = ?`
+  UserData = await ExecuteFuncData(GetUserDataSql, ID)
+  if (UserData.length === 0) {
+    const GetTZUserDataSql = `Select u.username , u.user_id, u.useridentity, u.user_pic, u.user_content  
+      FROM ev_users u  
+      JOIN ev_notify a ON u.username = a.username  
+      WHERE a.notify_id = ?`
+    UserData = await ExecuteFuncData(GetTZUserDataSql, ID)
+    if (UserData.length === 0) return res.cc('用户不存在', 404)
+  }
+  const UN = UserData[0].username
+  const SelectGCDataSql = `SELECT
+        SUM(CASE WHEN goodnum = '1' THEN 1 ELSE 0 END) AS goodnums,
         SUM(CASE WHEN collect = '1' THEN 1 ELSE 0 END) AS collects FROM ev_userartdata WHERE username = ?`
   const sqla = `select  * from ev_articles where username =?  `
   const sqlF = `select * from ev_userrelation where author =? AND relation = 1`
@@ -47,7 +62,7 @@ exports.authData = async (req, res) => {
   data.goodnums = SelectGCData[0].goodnums
   data.collects = SelectGCData[0].collects
   data.articles = (await ExecuteFuncData(sqla, UN)).length
-  data.Users = (await ExecuteFuncData(GetUserDataSql, UN))[0]
+  data.Users = UserData[0]
   data.Users.fans = (await ExecuteFuncData(sqlF, UN)).length
   res.send({
     status: 200,
@@ -179,7 +194,7 @@ exports.delUserInfo = async (req, res) => {
       message: '注销成功！感谢您在jihau_top的陪伴！',
     })
   } else {
-    return res.cc('错误！', 404)
+    return res.cc('V2版本无法对其他用户进行注销！', 200)
   }
 }
 
@@ -495,24 +510,22 @@ exports.UserMessageHandler = async (req, res) => {
 }
 
 // 用户删除消息
-exports.ChangeMessageHandler = async (req,res) => {
+exports.ChangeMessageHandler = async (req, res) => {
   const id = req.body.id
   const user = req.auth.user_id
   const type = req.body.type
   let setData = ''
   if (type === 'read') {
     setData = 'state = 1'
-  }else if (type === 'delete') {
+  } else if (type === 'delete') {
     setData = 'is_delete = 1'
   }
   let UpdateMessageSql = `update ev_usermsg set ${setData} where id = ? and getuser = ?`
-  await ExecuteFuncData(UpdateMessageSql, [id, user])
-      .then(result => {
-        if (result.affectedRows !== 1) return res.cc('删除失败', 404)
-      })
+  await ExecuteFuncData(UpdateMessageSql, [id, user]).then((result) => {
+    if (result.affectedRows !== 1) return res.cc('删除失败', 404)
+  })
   res.cc('成功', 200)
 }
-
 
 exports.authArticleData = async (req, res) => {
   const { user, Num } = req.body

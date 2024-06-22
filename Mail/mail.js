@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer')
+const config = require('../config')
 // sendMail function 注册验证
 async function regUserMail(mail, content, user) {
   let transporter = nodemailer.createTransport({
@@ -6,13 +7,13 @@ async function regUserMail(mail, content, user) {
     port: 465,
     secure: true,
     auth: {
-      user: '', // 发送邮箱
-      pass: '', // 发送密钥
+      user: config.sendMail, // 发送邮箱
+      pass: config.sendPassword, // 发送密钥
     },
   })
   let info = await transporter.sendMail({
     // 发送方的邮箱地址
-    from: '', // 发送邮箱
+    from: config.sendMail, // 发送邮箱
     to: mail, // 对方邮箱
     // cc         : ''  //抄送 用于多人邮件
     // bcc      : ''    //密送

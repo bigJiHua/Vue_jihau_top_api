@@ -15,6 +15,7 @@ exports.router_getSetting = async (req, res) => {
     res.status(200).send({
       status: 200,
       message: '获取成功',
+      ismessage: false,
       data: GetSetCarouselOptions,
     })
   } else if (getValue === 'DevP') {
@@ -25,6 +26,7 @@ exports.router_getSetting = async (req, res) => {
     res.status(200).send({
       status: 200,
       message: '获取成功',
+      ismessage: false,
       data: GetSetDevelopmentHistoryOptions,
     })
   } else if (getValue === 'Sps') {
@@ -35,6 +37,7 @@ exports.router_getSetting = async (req, res) => {
     res.status(200).send({
       status: 200,
       message: '获取成功',
+      ismessage: false,
       data: GetSettingsUnionOptions,
     })
   }
@@ -154,7 +157,6 @@ exports.router_setSpsList = async (req, res) => {
     })
   } else if (getmet === 'cag') {
     const data = JSON.parse(req.body.data)
-    if (data.set_time !== '') data.set_time = config.pub_date
     data.set_user = getUser
     const id = data.id
     const sql = `update ev_setting set ? where id=${id}`

@@ -40,6 +40,6 @@ router.get(
   userinfoRM.getUserInfoList,
 ) // 权限接口， 获取所有用户列表(管理员)
 router.get('/msg', expressJoi(userinfoRules.getUserMessage), userinfoRM.UserMessageHandler) // 权限接口， 获取用户消息数据)
-router.patch('/msg', expressJoi(userinfoRules.delUserMessage),userinfoRM.ChangeMessageHandler)
+router.patch('/msg', expressJoi(userinfoRules.delUserMessage), userinfoRM.ChangeMessageHandler)
 router.get('/?', expressJoi(userinfoRules.UserNameRoule), userinfoRM.getUserInfoUN) // 权限接口， 获取username的消息数据
 module.exports = router

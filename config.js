@@ -8,13 +8,32 @@
  *  4. 数据库账密
  *  5. 修改密钥
  * */
+// 项目端口
 const Port = 666
+// 数据库配置
+const dbUser = ''
+const dbBase = ''
+const dbPassword = ''
 // 文件上传路径
 const path = './public/uploads/'
 // 文件访问路径
-const selpath = 'http://127.0.0.1/public/uploads/'
+const selpath = 'http://127.0.0.1/api/public/uploads/'
+// Mail发送邮箱
+const sendMail = ''
+// Mail发送密码
+const sendPassword = ''
+// 配置一个token加密密钥
+const jwtSecretKey = 'jihua is a good man !'
+// token的有效期
+const expiresIn = '12h'
+// 校验规则
+const options = {
+  secret: jwtSecretKey,
+  algorithms: ['HS256'],
+  credentialsRequired: true,
+}
 // 文件上传条数Max
-const MaxFile = 100
+const MaxFile = 20
 /*　生成格式化日期 */
 const dayjs = require('dayjs')
 let d = new Date()
@@ -106,17 +125,6 @@ function filterSqlInjection(input, res) {
   // 输入通过检查，没有包含危险关键词
   return input
 }
-
-// 配置一个token加密密钥
-const jwtSecretKey = 'jihua is a good man !'
-// token的有效期
-const expiresIn = '10h'
-// 校验规则
-const options = {
-  secret: jwtSecretKey,
-  algorithms: ['HS256'],
-  credentialsRequired: true,
-}
 // 生成用户唯一id
 const { v4: uuid } = require('uuid')
 const generateUserId = (num) => {
@@ -138,4 +146,9 @@ module.exports = {
   options,
   filterSqlInjection,
   defaultUserLogo,
+  dbUser,
+  dbBase,
+  dbPassword,
+  sendMail,
+  sendPassword,
 }

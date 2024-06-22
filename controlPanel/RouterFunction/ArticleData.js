@@ -83,13 +83,13 @@ exports.getDetail = async (req, res) => {
   } else {
     data.article = QueryData[0]
     // 查询该数据的点赞和评论数
-    const QueryDataUserOperationsSql = `SELECT ev_userartdata.goodnum, ev_userartdata.collect FROM ev_userartdata WHERE article_id=?`
-    const QueryDataUserOperations = await ExecuteFuncData(QueryDataUserOperationsSql, UID)
-    const newArry = JSON.parse(JSON.stringify(QueryDataUserOperations))
-    for (let key in newArry) {
-      data.goodnum += parseInt(newArry[key].goodnum)
-      data.collect += parseInt(newArry[key].collect)
-    }
+    // const QueryDataUserOperationsSql = `SELECT goodnum, collect FROM ev_userartdata WHERE article_id=?`
+    // const QueryDataUserOperations = await ExecuteFuncData(QueryDataUserOperationsSql, UID)
+    // const newArry = JSON.parse(JSON.stringify(QueryDataUserOperations))
+    // for (let key in newArry) {
+    //   data.goodnum += parseInt(newArry[key].goodnum)
+    //   data.collect += parseInt(newArry[key].collect)
+    // }
     // 查询数据评论
     const QueryDataCommentsSql = `SELECT * FROM ev_usercomment WHERE article_id=?`
     data.comment = await ExecuteFuncData(QueryDataCommentsSql, UID)

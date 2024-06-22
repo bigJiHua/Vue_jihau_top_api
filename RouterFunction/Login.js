@@ -62,6 +62,17 @@ exports.user_login_API = async (req, res) => {
     status: 0,
     err_message: '成功登录',
   })
+  // 用户不在权限表那就增加权限表
+  const cagPowerActionSql = `SELECT * FROM ev_userpower WHERE username = ?`
+  const cagPowerAction = await ExecuteFuncData(cagPowerActionSql, userinfo.username)
+  if (cagPowerAction.length === 0) {
+    const AddUserPowerActionSql = `INSERT INTO ev_userpower (username, user_id, isadmin)  
+                SELECT username, user_id,   
+                       CASE WHEN useridentity = 'manager' THEN 1 ELSE 0 END AS isadmin  
+                FROM ev_users  
+                WHERE username = ?`
+    await ExecuteFuncData(AddUserPowerActionSql, userinfo.username)
+  }
 }
 
 // 用户注册
@@ -102,7 +113,11 @@ exports.regUser = async (req, res) => {
   userinfo.user_pic = config.defaultUserLogo
   const NewUsers = await ExecuteFuncData(NewUsersSql, userinfo)
   // 在权限表插入用户权限
-  const insertNewUsersPowerSql = `INSERT INTO ev_userpower (username,user_id) SELECT username,user_id FROM ev_users WHERE username = ?`
+  const insertNewUsersPowerSql = `INSERT INTO ev_userpower (username, user_id, isadmin)  
+                SELECT username, user_id,   
+                       CASE WHEN useridentity = 'manager' THEN 1 ELSE 0 END AS isadmin  
+                FROM ev_users  
+                WHERE username = ?`
   await ExecuteFuncData(insertNewUsersPowerSql, userinfo.username)
   if (NewUsers.affectedRows !== 1) return res.cc('用户注册失败，请稍后再试', 202)
   const markCaptcha = await ExecuteFuncData(markCaptchaSql, data)

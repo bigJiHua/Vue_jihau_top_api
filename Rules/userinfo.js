@@ -32,7 +32,6 @@ exports.cag_UserPower = {
 
 exports.UserAction = {
   body: {
-    username,
     articleid: joi.required(),
     type: joi.string().required(),
     comment: joi.string().allow(),
@@ -51,7 +50,7 @@ exports.UserNameRoule = {
 }
 exports.authData = {
   data: {
-    user,
+    id: joi.string().required(),
   },
 }
 
@@ -82,7 +81,7 @@ exports.delUserMessage = {
   body: {
     id: joi.required(),
     type: joi.required(),
-  }
+  },
 }
 exports.userData = {
   data: {

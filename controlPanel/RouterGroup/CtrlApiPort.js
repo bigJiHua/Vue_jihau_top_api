@@ -18,7 +18,7 @@ const {
   VerifyAdministratorIdentity,
   CheckUserStatus,
 } = require('../../Implement/middleware/CheckUserMiddleware')
-const ExecuteFuncData = require("../../Implement/ExecuteFunctionData");
+const ExecuteFuncData = require('../../Implement/ExecuteFunctionData')
 router.use(async (req, res, next) => {
   await VerifyAdministratorIdentity(req, res, next)
 })
@@ -53,22 +53,26 @@ router.post(
 // 用户获取站内信
 router.get('/msg', expressJoi(UserDataRules.getMessage), UsersData_RM.getMessage)
 // 用户发布站内信
-router.post('/msg', expressJoi(UserDataRules.sendMessage),
-    async (req, res, next) => {
-        const user = req.body.getuser
-        if(req.body.getuser === 'all') {
-            return next()
-        }
-        const CheckUserStatusSql = `select user_id,username from ev_users where user_id=?`
-        if (user !== undefined) {
-            const CheckUserStatus = await ExecuteFuncData(CheckUserStatusSql, user)
-            if (CheckUserStatus.length === 0) return res.cc('用户不存在！', 404)
-            next()
-        } else {
-            res.cc('查询参数异常', 404)
-        }
-    },UsersData_RM.sendMessage)
-router.patch('/msg',UsersData_RM.ChangeMessageData)
+router.post(
+  '/msg',
+  expressJoi(UserDataRules.sendMessage),
+  async (req, res, next) => {
+    const user = req.body.getuser
+    if (req.body.getuser === 'all') {
+      return next()
+    }
+    const CheckUserStatusSql = `select user_id,username from ev_users where user_id=?`
+    if (user !== undefined) {
+      const CheckUserStatus = await ExecuteFuncData(CheckUserStatusSql, user)
+      if (CheckUserStatus.length === 0) return res.cc('用户不存在！', 404)
+      next()
+    } else {
+      res.cc('查询参数异常', 404)
+    }
+  },
+  UsersData_RM.sendMessage,
+)
+router.patch('/msg', UsersData_RM.ChangeMessageData)
 router.post('/Lunbo', expressJoi(Setting_schema_M.getSetting), Setting_Router.router_setLunbo)
 router.post('/DevP', expressJoi(Setting_schema_M.DevPSetting), Setting_Router.router_setDevp)
 router.post('/SpsList', expressJoi(Setting_schema_M.DevPSetting), Setting_Router.router_setSpsList)

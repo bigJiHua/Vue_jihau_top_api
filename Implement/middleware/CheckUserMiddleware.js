@@ -38,7 +38,10 @@ exports.verifyUserToken = (token) => {
 // 校验普通get请求解析用户数据
 exports.verifyToken = (req, res, next) => {
   // 获取请求头中的 Authorization 头部，通常包含 token
-  if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
+  if (
+    req.headers.authorization !== undefined &&
+    req.headers.authorization.split(' ')[0] === 'Bearer'
+  ) {
     const token = req.headers.authorization.replace('Bearer ', '')
     try {
       // 解析 token，此处的 'your_secret' 应该替换为你的 JWT 密钥
