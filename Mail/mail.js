@@ -47,7 +47,7 @@ async function regUserMail(mail, content, user) {
                         </div>
                         <div style="width:680px;padding:0 10px;margin:0 auto;">
                             <div style="line-height:1.5;font-size:14px;margin-bottom:25px;color:#4d4d4d;">
-                                <strong style="display:block;margin-bottom:15px;">尊敬的用户：<span style="color:#f60;font-size: 16px;"> ${user} </span>您好！</strong>
+                                <strong style="display:block;margin-bottom:15px;">尊敬的<span style="color:#f60;font-size: 16px;"> ${user} </span>用户，您好！</strong>
                                 <strong style="display:block;margin-bottom:15px;">
                                     您正在进行<span style="color: red"> ${user} 账号激活</span>操作，请在邮箱中点击<a href="https://jihau.top/checkVer?code=${content}&user=${user}" style="color:red;font-size:1.5rem">Link</a>或者点击
                                     <a href="https://jihau.top/checkVer/${content}/${user}" style="color:red;font-size:1.5rem">elseLink</a>
@@ -58,7 +58,6 @@ async function regUserMail(mail, content, user) {
                                 <small style="display:block;margin-bottom:20px;font-size:12px;">
                                     <p style="color:#747474;">
                                         注意：此操作可能会修改您的密码、登录邮箱或绑定手机。如非本人操作，请及时登录并修改密码以保证帐户安全
-                                        <br>（工作人员不会向你索取此验证码，请勿泄漏！)
                                     </p>
                                 </small>
                             </div>

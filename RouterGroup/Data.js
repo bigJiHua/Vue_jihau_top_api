@@ -33,13 +33,43 @@ router.get(
   '/space',
   expressJoi(userinfoRules.userData),
   async (req, res, next) => {
-    await CheckUserisTrue(req, res, next)
+    await CheckUserisTrue(req, res, next, 'space')
   },
   userinfoRM.getSpaceData,
 ) // 获取个人空间
-router.get('/spaceart', expressJoi(userinfoRules.authArticleData), space_Router.spaceArt) // 获取作者文章
-router.get('/spacecol', expressJoi(userinfoRules.authArticleData), space_Router.spaceCol) // 获取作者收藏
-router.get('/spacelike', expressJoi(userinfoRules.authArticleData), space_Router.spaceLike) // 获取作者喜欢
-router.get('/relation', expressJoi(userinfoRules.getRelationData), space_Router.getUserRelation) // 查两人关系 以及获取关系列表
+router.get(
+  '/spaceart',
+  expressJoi(userinfoRules.authArticleData),
+  async (req, res, next) => {
+    await CheckUserisTrue(req, res, next, 'art')
+  },
+  space_Router.spaceArt,
+) // 获取空间作者文章
+router.get(
+  '/spacecol',
+  expressJoi(userinfoRules.authArticleData),
+  async (req, res, next) => {
+    await CheckUserisTrue(req, res, next, 'col')
+  },
+  space_Router.spaceCol,
+) // 获取空间作者收藏
+router.get(
+  '/spacelike',
+  expressJoi(userinfoRules.authArticleData),
+  async (req, res, next) => {
+    await CheckUserisTrue(req, res, next, 'like')
+  },
+  space_Router.spaceLike,
+) // 获取空间作者喜欢
+router.get(
+  '/relation',
+  expressJoi(userinfoRules.getRelationData),
+  async (req, res, next) => {
+    const type = req.query.met === 'Beflist' ? 'fans' : 'rel'
+    await CheckUserisTrue(req, res, next, type)
+  },
+  space_Router.getUserRelation,
+) // 查两人关系 以及获取关系列表
+
 router.get('/sitemap', get_archives_Router.sitemapData) // 获取sitemap数据
 module.exports = router

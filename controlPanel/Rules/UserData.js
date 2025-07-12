@@ -70,3 +70,8 @@ exports.getMessage = {
     key: joi.string(),
   },
 }
+exports.Userinfo = {
+  query: {
+    user: joi.string().required(),
+  },
+}

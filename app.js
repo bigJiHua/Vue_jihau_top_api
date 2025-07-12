@@ -8,7 +8,27 @@ const config = require('./config')
 const webapp = express()
 
 /* 中间件 */
-webapp.use(cors())
+const allowedOrigin = [
+  'http://192.168.0.103:5173',
+  'http://192.168.0.103:3000',
+  'http://localhost:5173',
+  'http://localhost:3000',
+]
+webapp.use(
+  cors({
+    origin: allowedOrigin, // 指定前端地址
+    credentials: true, // 允许携带 cookie
+    methods: ['GET', 'POST', 'OPTIONS', 'PATCH'], // 必须包含你使用的方法
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'viewportwidth',
+      'viewportheight',
+      'pixelratio',
+      'navigatorplatform',
+    ],
+  }),
+)
 webapp.use(
   bodyParser.urlencoded({
     limit: '10mb',
@@ -16,13 +36,17 @@ webapp.use(
   }),
 )
 // 配置解析session中间件
-// webapp.use(
-//   session({
-//     secret: 'Keybard cat',
-//     resave: false,
-//     saveUninitialized: true,
-//   })
-// )
+webapp.use(
+  session({
+    secret: config.sessionKey, // 用于加密 session ID 的字符串（必须）
+    resave: false, // 强制每次请求都保存 session（推荐 false）
+    saveUninitialized: true, // 初始化未设置内容的 session 也保存（推荐 true）
+    cookie: {
+      maxAge: 1000 * 60 * 1, // session 有效期：1分钟
+      secure: false, // 确保http能发送cookie
+    },
+  }),
+)
 // 封装自定义全局中间件
 const { setUserPXData } = require('./Implement/ExecuteUserData')
 webapp.use(async (req, res, next) => {
@@ -32,8 +56,7 @@ webapp.use(async (req, res, next) => {
       message: err instanceof Error ? err.message : err,
     })
   }
-  await setUserPXData(req,res)
-  // console.log(req.headers)
+  await setUserPXData(req, res)
   next()
 })
 /* 中间件 */
@@ -45,6 +68,7 @@ const get_data_Router = require('./RouterGroup/Data')
 const userinfo_Router = require('./RouterGroup/Userinfo')
 const setting_Router = require('./RouterGroup/Setting')
 const user_mail_Router = require('./RouterGroup/Mail')
+const user_public_Router = require('./RouterGroup/AllPublic')
 const CtrlAPIPort = require('./controlPanel/RouterGroup/CtrlApiPort') // 控制面板接口
 const CountRG = require('./calculation/RouterGroup/Count') // 数据计算接口
 
@@ -52,30 +76,12 @@ webapp.use('/api/article', expressJWT(config.options), article_list_router) // �
 webapp.use('/api/users', expressJWT(config.options), userinfo_Router) // 权限接口 用户信息的增删改查
 webapp.use('/api/setting', expressJWT(config.options), setting_Router) // 权限接口 管理员修改站点信息
 webapp.use('/api/Ctrl', expressJWT(config.options), CtrlAPIPort) // 权限接口 后台管理面板接口 严格控制
-webapp.use('/Count', CountRG)
+webapp.use('/api/Count', CountRG) // 后台 未开发
 webapp.use('/api/my', user_login_Router) // 登录注册 非权限接口
 webapp.use('/api/getmail', user_mail_Router) // 获取验证码 非权限接口
 webapp.use('/api/data', get_data_Router) // get数据接口 非权限接口
-const ExecuteFuncData = require('./Implement/ExecuteFunctionData')
-const path = require('path')
-//TODO test
-webapp.get('/api/image', async (req, res) => {
-  const shortCode = req.query.code
-  console.log(shortCode)
-  if (!shortCode) return res.cc('非法请求')
-  const Sle = `Select * from ev_userimage where data = ?`
-  const Sdjn = await ExecuteFuncData(Sle, shortCode)
-  const filePath = `./public/${String(Sdjn[0].userimage).match(/(?<=\/public\/).*/)[0]}`
-  // 根据 shortCode 解析获取文件路径
-  // const filePath = resolveFilePathFromShortCode(shortCode);
-  // 返回文件给前端
-  res.sendFile(path.resolve(filePath))
-  // res.status(200).send({
-  //   message: filePath,
-  //   status: 200
-  // })
-})
-webapp.use('/api/public/uploads', express.static('./public/uploads')) // 静态资源
+webapp.use('/api/public', user_public_Router) // 公共接口
+webapp.use('/api/public/uploads', express.static(config.path)) // 获取图片静态资源
 
 /* 路由模块 */
 
@@ -84,7 +90,7 @@ webapp.use((err, req, res, next) => {
   if (err instanceof Joi.ValidationError)
     return res.send({
       message: err.message,
-      status: 400,
+        status: 400,
     })
   if (err.name === 'UnauthorizedError')
     return res.status(401).send({

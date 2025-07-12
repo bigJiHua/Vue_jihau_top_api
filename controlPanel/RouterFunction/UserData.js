@@ -46,12 +46,48 @@ exports.ChangeAndGetUsersData = async (req, res) => {
   })
 }
 
-//TODO 获取用户日志
+//TODO 获取用户日志 暂未开发
 exports.GetUserLogData = async (req, res) => {
   // TODO 给管面板获取上次登录的日期
   // TODO 给管面板查询登录日志功能
   // SELECT * FROM `ev_login_log` ORDER BY `ev_login_log`.`login_time` DESC
   const { type, id } = req.query
+}
+
+// 获取用户信息
+exports.getUserInfoUN = async (req, res) => {
+  // 无需用户名 根据token里的用户名进行获取个信
+  const UN = req.query.user
+  const data = {}
+  // 获取用户基本数据
+  const GetUserDataSql = `select * from ev_users where username=?`
+  // 查询点赞\收藏
+  const SelectGCDataSql = `SELECT SUM(CASE WHEN goodnum = '1' THEN 1 ELSE 0 END) AS goodnums,
+        SUM(CASE WHEN collect = '1' THEN 1 ELSE 0 END) AS collects FROM ev_userartdata WHERE username = ?`
+  // 查询评论
+  const sqlc = `select
+    s.article_id,s.title,s.username,d.comment,d.pub_date,s.cover_img,d.id
+    from ev_usercomment d,ev_articles s
+    where d.article_id = s.article_id
+    and d.username=?`
+  const sqla = `select  * from ev_articles where username =?  `
+  const sqlF = `select * from ev_userrelation where author =? AND relation = 1`
+  const sqlP = `select * from ev_userpower where username = ?`
+  const SelectGCData = await ExecuteFuncData(SelectGCDataSql, UN)
+  data.goodnums = SelectGCData[0].goodnums
+  data.collects = SelectGCData[0].collects
+  data.comments = (await ExecuteFuncData(sqlc, UN)).length
+  data.articles = (await ExecuteFuncData(sqla, UN)).length
+  const GetUserData = await ExecuteFuncData(GetUserDataSql, UN)
+  data.Users = { ...GetUserData[0], password: '' }
+  data.Users.fans = (await ExecuteFuncData(sqlF, UN)).length
+  data.Users.UserPower = await ExecuteFuncData(sqlP, UN)
+  res.send({
+    status: 200,
+    message: '用户信息数据获取成功！',
+    data: data,
+    ismessage: false,
+  })
 }
 
 // 修改用户信息
@@ -219,10 +255,10 @@ exports.sendMessage = async (req, res) => {
   }
   let SelectTable = 'ev_sitemsg'
   // 单发用户
-  if (getuser !== 'all') {
+  if (getuser !== 'all' && req.auth.user_id) {
     if (!getuser) return res.cc('参数错误！', 404)
     SelectTable = 'ev_usermsg'
-    data.senduser = sendUser
+    data.senduser = req.auth.user_id
   }
   const SendMsgValueSql = `insert into ${SelectTable} set ?`
   const SendMsgValue = await ExecuteFuncData(SendMsgValueSql, data)

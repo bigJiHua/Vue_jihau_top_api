@@ -1,17 +1,15 @@
 // 用户信息更新验证模块
 const joi = require('joi')
-const id = joi.number().integer().min(1).required()
 const user_id = joi.required()
 const oldpwd = joi.string().required().min(6).max(25)
 const newpwd = joi.string().required().min(6).max(25)
-const username = joi.string().required()
 const user = joi.string().required()
 
 // 改用户信息
 exports.cag_UserInfo = {
   body: {
     user_id,
-    setData: joi.string().required(),
+    setData: joi.string().max(120).required(),
   },
 }
 
@@ -43,11 +41,7 @@ exports.DeleteUserAcount = {
     deluser: joi.string().required(),
   },
 }
-exports.UserNameRoule = {
-  data: {
-    user,
-  },
-}
+
 exports.authData = {
   data: {
     id: joi.string().required(),

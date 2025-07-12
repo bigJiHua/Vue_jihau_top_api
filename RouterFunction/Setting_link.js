@@ -12,7 +12,7 @@ exports.router_getSetting = async (req, res) => {
         from ev_setting where set_name=?`
     const GetSetCarouselOptions = await ExecuteFuncData(GetSetCarouselOptionsSql, getValue)
     if (GetSetCarouselOptions.length === 0) return res.cc('什么也没找到', 404)
-    res.status(200).send({
+    return res.status(200).send({
       status: 200,
       message: '获取成功',
       ismessage: false,
@@ -23,7 +23,7 @@ exports.router_getSetting = async (req, res) => {
     const GetSetDevelopmentHistoryOptionsSql = `select * from ev_setting where set_name='DevP'`
     const GetSetDevelopmentHistoryOptions = await ExecuteFunc(GetSetDevelopmentHistoryOptionsSql)
     if (GetSetDevelopmentHistoryOptions.length === 0) return res.cc('什么也没找到', 404)
-    res.status(200).send({
+    return res.status(200).send({
       status: 200,
       message: '获取成功',
       ismessage: false,
@@ -34,7 +34,7 @@ exports.router_getSetting = async (req, res) => {
     const GetSettingsUnionOptionsSql = `select * from ev_setting where set_name='PriceUser'`
     const GetSettingsUnionOptions = await ExecuteFunc(GetSettingsUnionOptionsSql)
     if (GetSettingsUnionOptions.length === 0) return res.cc('什么也没找到', 404)
-    res.status(200).send({
+    return res.status(200).send({
       status: 200,
       message: '获取成功',
       ismessage: false,
@@ -51,7 +51,7 @@ exports.router_setLunbo = async (req, res) => {
     // 获取轮播图设置 Get carousel settings
     const GetCarouselSettingsSql = `select * from ev_setting where set_name='Lunbo'`
     const GetCarouselSettings = await ExecuteFunc(GetCarouselSettingsSql)
-    res.status(200).send({
+    return res.status(200).send({
       status: 200,
       message: '获取成功',
       data: GetCarouselSettings,
@@ -64,12 +64,12 @@ exports.router_setLunbo = async (req, res) => {
     const UpdateCarouselSettingsSql = `update ev_setting set ? where id=${id}`
     const UpdateCarouselSettings = await ExecuteFuncData(UpdateCarouselSettingsSql, data)
     if (UpdateCarouselSettings.affectedRows === 1) {
-      res.status(200).send({
+      return res.status(200).send({
         status: 200,
         message: '数据更新成功',
       })
     } else {
-      res.status(500).send({
+      return res.status(500).send({
         status: 500,
         message: '数据更新失败',
       })
@@ -97,12 +97,12 @@ exports.router_setDevp = async (req, res) => {
     const sql = `update ev_setting set ? where id=${id}`
     const state = await ExecuteFuncData(sql, data)
     if (state.affectedRows === 1) {
-      res.status(200).send({
+      return res.status(200).send({
         status: 200,
         message: '数据更新成功',
       })
     } else {
-      res.status(500).send({
+      return res.status(500).send({
         status: 500,
         message: '数据更新失败',
       })
@@ -114,12 +114,12 @@ exports.router_setDevp = async (req, res) => {
     const sql = 'insert into ev_setting set ?'
     const state = await ExecuteFuncData(sql, data)
     if (state.affectedRows === 1) {
-      res.status(200).send({
+      return res.status(200).send({
         status: 200,
         message: '新增发展历程成功!',
       })
     } else {
-      res.status(500).send({
+      return res.status(500).send({
         status: 500,
         message: '新增发展历程失败',
       })
@@ -130,12 +130,12 @@ exports.router_setDevp = async (req, res) => {
     const sql = `delete from ev_setting where id=${id}`
     const state = await ExecuteFunc(sql)
     if (state.affectedRows === 1) {
-      res.status(200).send({
+      return res.status(200).send({
         status: 200,
         message: '删除发展历程成功!',
       })
     } else {
-      res.status(500).send({
+      return res.status(500).send({
         status: 500,
         message: '删除发展历程失败',
       })
@@ -150,7 +150,7 @@ exports.router_setSpsList = async (req, res) => {
   if (getmet === 'get') {
     const sql = `select * from ev_setting where set_name='PriceUser'`
     const data = await ExecuteFunc(sql)
-    res.status(200).send({
+    return res.status(200).send({
       status: 200,
       message: '获取成功',
       data: data,
@@ -162,12 +162,12 @@ exports.router_setSpsList = async (req, res) => {
     const sql = `update ev_setting set ? where id=${id}`
     const state = await ExecuteFuncData(sql, data)
     if (state.affectedRows === 1) {
-      res.status(200).send({
+      return res.status(200).send({
         status: 200,
         message: '数据更新成功',
       })
     } else {
-      res.status(500).send({
+      return res.status(500).send({
         status: 500,
         message: '数据更新失败',
       })
@@ -179,12 +179,12 @@ exports.router_setSpsList = async (req, res) => {
     const sql = 'insert into ev_setting set ?'
     const state = await ExecuteFuncData(sql, data)
     if (state.affectedRows === 1) {
-      res.status(200).send({
+      return res.status(200).send({
         status: 200,
         message: '新增成功了喵',
       })
     } else {
-      res.status(500).send({
+      return res.status(500).send({
         status: 500,
         message: '新增失败了喵',
       })
@@ -195,12 +195,12 @@ exports.router_setSpsList = async (req, res) => {
     const sql = `delete from ev_setting where id=${id}`
     const state = await ExecuteFunc(sql)
     if (state.affectedRows === 1) {
-      res.status(200).send({
+      return res.status(200).send({
         status: 200,
         message: '删除成功了喵',
       })
     } else {
-      res.status(500).send({
+      return res.status(500).send({
         status: 500,
         message: '删除失败了喵',
       })

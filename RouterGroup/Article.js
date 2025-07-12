@@ -19,7 +19,7 @@ const upload = multer({
     // 限制上傳檔案的大小為 4MB
     fileSize: 4000000,
   },
-  // storage, 省略存储部分
+  // storage //省略存储部分
 })
 
 /* 文件上传 */
@@ -45,9 +45,9 @@ router.post('/img', expressJoi(ArticleRoules.article_getimage), article_function
 router.post(
   '/upimg',
   async (req, res, next) => {
-    await CheckUserPower(req, res, next, 'isupimg')
+    await CheckUserPower(req, res, next, 'isupimg') // 检查是否有权限上传文件
   },
-  upload.single('file'),
+  upload.single('file'), // 挂载上传文件
   article_function.article_upimage,
 ) // 文件上传接口
 router.post(

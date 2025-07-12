@@ -40,7 +40,7 @@ exports.SelectData = async (req, res) => {
       totalNum: totalCount,
     })
   }
-  res.status(200).send({
+  return res.status(200).send({
     status: 200,
     message: '获取成功',
     data: config.SelectContent(GetOnly10ArticlesAtATime, 30),
@@ -189,16 +189,17 @@ exports.cagUPData = async (req, res) => {
 
 // 修改用户文章
 exports.cagUAData = async (req, res) => {
-  const reason = req.body.reason
-  const cagUser = req.auth.username
-  const type = req.body.type
+  const reason = req.body.reason // 原因
+  const cagUser = req.auth.username // 操作者的用户名
+  const type = req.body.type // 操作数据类型
   let tableName = '' // 表名
   let tableId = '' // id名
   let tablevalue = '' // 表值
   const { data, id } = JSON.parse(req.body.data)
+  // 解密密钥
   const Secret = req.headers.authorization.substr(id, 10)
   const bytes = CryptoJS.AES.decrypt(data, Secret)
-  // 更改后的数据
+  // 解密出更改后的数据
   const decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8))
   const { article_id, notify_id, username } = decryptedData
   if (!username) return res.cc('非法请求！', 404)
@@ -228,15 +229,14 @@ exports.cagUAData = async (req, res) => {
     source_article: stubData,
     cag_article: JSON.stringify(decryptedData),
     cagdate: config.pub_date,
-    reason: reason,
+    reason,
     cagmanage: cagUser,
   }
   // 第二步 检测是否被修改过
   const checkIsChangeSql = `select * from ev_cagarticlelog where article_id=? AND username=?`
   const checkIsChange = await ExecuteFuncData(checkIsChangeSql, [tablevalue, username])
   if (checkIsChange.length !== 1) {
-    // 未被写入过 进行写入
-    // 写入备份库 insert backup
+    // 未被写入过 进行写入 写入备份库 insert backup
     const insertBackupSql = `insert into ev_cagarticlelog set ?`
     const insertBackup = await ExecuteFuncData(insertBackupSql, BackupData)
     if (insertBackup.affectedRows !== 1) return res.cc('操作错误！请重试', 404)
@@ -250,11 +250,6 @@ exports.cagUAData = async (req, res) => {
     ])
     if (UpdateStubData.affectedRows === 0) return res.cc('操作错误！请重试', 404)
   }
-  await UpdateNumAndData(decryptedData, username, tableName, tablevalue, tableId, res)
-}
-
-// 复用函数，更新 修改数 以及复写源数据
-async function UpdateNumAndData(decryptedData, username, tableName, tablevalue, tableId, res) {
   // 增加修改次数
   const UpChangeNumSql = `UPDATE ev_cagarticlelog  SET change_num = change_num + 1  WHERE article_id =? AND username =? AND change_num<=30`
   await ExecuteFuncData(UpChangeNumSql, [tablevalue, username])
@@ -266,7 +261,7 @@ async function UpdateNumAndData(decryptedData, username, tableName, tablevalue, 
     username,
   ])
   if (UpdateUserArticle.affectedRows !== 1) return res.cc('修改失败', 404)
-  res.status(200).send({
+  return res.status(200).send({
     status: 200,
     message: '修改成功！',
   })

@@ -1,7 +1,7 @@
-const db = require("../DataBase/linkdb");
+const db = require('../DataBase/linkdb')
 // 写入日志方法
 const setSystemLogFunc = async (err, log, todo, user) => {
-  if(err === '' || log === '') return
+  if (err === '' || log === '') return
   const InsetErrorSql = `insert into ev_error_log set ?`
   const data = {
     err: JSON.stringify(err),
@@ -17,5 +17,5 @@ const setSystemLogFunc = async (err, log, todo, user) => {
   })
 }
 module.exports = {
-  setSystemLogFunc
+  setSystemLogFunc,
 }

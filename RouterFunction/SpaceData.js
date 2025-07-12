@@ -163,7 +163,7 @@ exports.getUserRelation = async (req, res) => {
     }
   }
   SelectUserRelation = await ExecuteFuncData(SelectUserRelationSql, [author, Num])
-  res.send({
+  return res.send({
     status: 200,
     message: '获取成功',
     ismessage: false,

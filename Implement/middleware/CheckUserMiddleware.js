@@ -44,18 +44,19 @@ exports.verifyToken = (req, res, next) => {
   ) {
     const token = req.headers.authorization.replace('Bearer ', '')
     try {
-      // 解析 token，此处的 'your_secret' 应该替换为你的 JWT 密钥
+      // 解析 token
       const tokenData = jwt.verify(token, config.jwtSecretKey, { algorithms: ['HS256'] })
       // 将解析的数据存储在请求对象中，以便后续路由使用
-      req.authData = tokenData ? tokenData : []
+      req.authData = tokenData
     } catch (err) {
-      console.log(err)
+      console.log('密钥失效')
+      req.authData = []
     }
   }
   // 继续执行下一个中间件或路由
   next()
 }
-// TODO 检查请求web平台
+// TODO 检查请求web平台 暂未开发
 exports.CheckReqWebsite = (req, res, next) => {
   // const data = req.he
 }
@@ -89,8 +90,11 @@ exports.CheckUserStatus = async (req, res, next) => {
 }
 
 // 检查用户是否存在 CheckUserisTrue
-exports.CheckUserisTrue = async (req, res, next) => {
-  const user = req.query.user
+exports.CheckUserisTrue = async (req, res, next, power_type) => {
+  // 这次请求数据的对象
+  // 关系对应的API 传参是 author 其余为 user
+  const user = req.query.user ?? req.query.author
+  // 这次请求的人 是否带token
   const getUser = req.authData ? req.authData.username : ''
   let isSelfBoolean = false
   const CheckUserStatusSql = `select username,user_id,useridentity,sex,city,user_pic,user_bgc,user_content,birthday,registerDate from ev_users where username=?`
@@ -98,11 +102,19 @@ exports.CheckUserisTrue = async (req, res, next) => {
     if (user.toLowerCase() === getUser.toLowerCase()) isSelfBoolean = true
     const CheckUserStatus = await ExecuteFuncData(CheckUserStatusSql, user)
     if (CheckUserStatus.length === 0) return res.cc('用户不存在！', 404)
+    // 如果用户存在 则检查隐私权限
+    // 如果是自己则跳过此项检测
+    if (!isSelfBoolean) {
+      const SelectUserPowerSql = `Select * from ev_userpower where username = ?`
+      const SelectUserPower = await ExecuteFuncData(SelectUserPowerSql, user)
+      const Power = SelectUserPower[0]
+      if (Number(Power[`is${power_type}`]) === 0) return res.cc('用户关闭了查看权限！', 403)
+    }
     req.body.isSelf = isSelfBoolean
     req.body.UserData = CheckUserStatus[0]
     next()
   } else {
-    res.cc('查询参数异常', 404)
+    return res.cc('查询参数异常', 404)
   }
 }
 
@@ -145,7 +157,7 @@ exports.CheckUserPower = async (req, res, next, type) => {
   }
   const SearchUserPowerSql = `Select ${powername} from ev_userpower where username = ?`
   const SearchUserPower = await ExecuteFuncData(SearchUserPowerSql, user)
-  if (SearchUserPower.length === 0) return res.cc('查询错误！')
+  if (SearchUserPower.length === 0) return res.cc('权限查询错误！')
   if (SearchUserPower[0][powername] === 1) {
     next()
   } else {

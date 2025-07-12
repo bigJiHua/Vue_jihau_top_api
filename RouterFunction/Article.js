@@ -2,21 +2,12 @@
 const config = require('../config')
 const ExecuteFunc = require('../Implement/ExecuteFunction')
 const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
-/*
-  article_id: "Y1YZ60"
-  content: "<p>使用Java构建基于Spring的RESTful API"
-  lable: "使用Java构建基于Spring的RESTful API"
-  pub_date: "2023-06-13"
-  pub_month: 6
-  read_num: 0
-  state: "已发布"
-  title: "使用Java构建基于Spring的RESTful API"
-  username: "JiHua"
-*/
+const sharp = require('sharp')
+
 // 获取文章列表
 exports.article_list = async (req, res) => {
   const page = req.query.page
-  if (page < 0) return res.cc('参数错误', 404)
+  if (page < 0 || page === undefined) return res.cc('参数错误', 404)
   // 每次只获取10条文章 Get only 10 articles at a time
   const GetOnly10ArticlesAtATimeSql = `SELECT 
     article_id,content,cover_img,pub_date,title,username
@@ -52,7 +43,7 @@ exports.article_archive = async (req, res) => {
   data = await ExecuteFunc(GetArticleArchiveSql)
   if (req.query.type === 'get') {
     if (!key) return res.cc('参数不全')
-    const SelectYearMonthListSql = `SELECT title,article_id FROM ev_articles WHERE pub_date LIKE ? limit 15`
+    const SelectYearMonthListSql = `SELECT title,article_id FROM ev_articles WHERE pub_date LIKE ? AND is_delete = 0 AND state = 0  limit 15`
     const SelectYearMonthList = await ExecuteFuncData(SelectYearMonthListSql, key)
     if (SelectYearMonthList.length === 0) return res.cc('参数有误')
     data = SelectYearMonthList
@@ -170,6 +161,14 @@ exports.article_get = async (req, res) => {
     data: data,
   })
 }
+
+// 轮询检测UID
+const CheckArticleIDs = async (UID) => {
+  // 查询是否有重复UID
+  const CheckIfThereAreDuplicateUIDsSql = `SELECT * FROM ev_articles WHERE article_id = ?`
+  const CheckIfThereAreDuplicateUIDs = await ExecuteFuncData(CheckIfThereAreDuplicateUIDsSql, UID)
+  return CheckIfThereAreDuplicateUIDs.length === 0 // 返回 true 如果没有重复 UID
+}
 // 发布文章
 exports.article_put = async (req, res) => {
   const put_data = req.body
@@ -179,26 +178,46 @@ exports.article_put = async (req, res) => {
   put_data.pub_date = put_data.pub_date !== '' ? put_data.pub_date : config.pub_date
   put_data.pub_month = config.pub_month
   let UID = ''
+  // 根据文章是否是 Markdown 来设置 UID
   if (artIsMd) {
-    UID = `md${config.generateMixed(2)}`
+    UID = `md${config.generateMixed(2)}` // 生成 2 位的 Markdown 文章 UID
+  } else {
+    UID = config.generateMixed(4) // 默认生成 4 位的 UID
   }
-  while (true) {
-    // 查询是否有重复UID Check if there are duplicate UIDs
-    const CheckIfThereAreDuplicateUIDsSql = `select * from ev_articles where article_id=?`
-    const CheckIfThereAreDuplicateUIDs = await ExecuteFuncData(CheckIfThereAreDuplicateUIDsSql, UID)
-    if (CheckIfThereAreDuplicateUIDs.length === 0) break
-    if (CheckIfThereAreDuplicateUIDs.length !== 0 && artIsMd) {
-      UID = `md${config.generateMixed(2)}`
-    } else if (CheckIfThereAreDuplicateUIDs.length !== 0) {
-      UID = config.generateMixed(4)
+  const maxRetries = 5 // 最大重试次数，避免死循环
+  let retries = 0
+  // 检查 UID 是否唯一
+  while (retries < maxRetries) {
+    if (await CheckArticleIDs(UID)) {
+      break // 找到唯一 UID，退出循环
+    } else {
+      retries++
+      // 如果不是 Markdown，生成一个新的 UID
+      if (artIsMd) {
+        UID = `md${config.generateMixed(2)}`
+      } else {
+        UID = config.generateMixed(4)
+      }
+      console.log(`Retrying UID generation: Attempt ${retries} - New UID: ${UID}`)
     }
   }
-  put_data.article_id = UID
+  // 如果重试次数超过最大限制，返回错误
+  if (retries >= maxRetries) {
+    return res.cc('生成唯一文章 ID 失败，请稍后重试')
+  }
+  put_data.article_id = UID // 将最终的 UID 赋值给文章数据
+  if (put_data.article_id === '') return res.cc('发布文章失败，请重新再试！', 500)
+  // 删除多余的数据字段
   delete put_data.isMd
-  // 插入文章 Insert article
-  const InsertArticleSql = `insert into ev_articles set ?`
+  // 插入文章到数据库
+  const InsertArticleSql = `INSERT INTO ev_articles SET ?`
   const InsertArticle = await ExecuteFuncData(InsertArticleSql, put_data)
-  if (InsertArticle.affectedRows !== 1) return res.cc('发布文章失败，请重新再试')
+
+  // 检查插入是否成功
+  if (InsertArticle.affectedRows !== 1) {
+    return res.cc('发布文章失败，请重新再试')
+  }
+  // 返回成功响应
   res.status(200).send({
     status: 200,
     message: message,
@@ -212,8 +231,6 @@ exports.article_del = async (req, res) => {
   const user = req.auth.username
   if (req.body.id === 'undefined') return res.cc('文章id不能为undefined！')
   if (!user) return res.cc('非法用户！', 401)
-  console.log(id)
-  console.log(user)
   // 删除文章 delete article
   const DeleteArticleSql = `update ev_articles set is_delete=1 where id=? AND username = ?`
   const DeleteArticle = await ExecuteFuncData(DeleteArticleSql, [id, user])
@@ -253,34 +270,43 @@ exports.article_cag = async (req, res) => {
 
 // 获取名下图库
 exports.article_image = async (req, res) => {
-  const Num = req.body.Num !== 'undefined' && Number(req.body.Num) >= 0 ? req.body.Num : 'all'
+  const Num = Number(req.body.Num)
   const username = req.body.picusername ? req.body.picusername : req.auth.username
   if (username === 'undefined') return res.cc('用户名不能为undefined', 204)
   // 获取名下图库 get Gallery
-  const getGallerySql = 'select * from ev_userimage where username=? and state=0'
-  const getGalleryLimitSql = `select * from ev_userimage where username=? and state=0 limit 20 offset ?`
+  const getGallerySql = 'select id from ev_userimage where username=? and state=0'
+  const getGalleryLimitSql = `SELECT * FROM ev_userimage 
+WHERE username=? AND state=0 
+ORDER BY id DESC 
+LIMIT 20 OFFSET ?
+`
   const getGallery = await ExecuteFuncData(getGallerySql, username)
-  let getGalleryLimit = []
-  if (Num !== 'all') getGalleryLimit = await ExecuteFuncData(getGalleryLimitSql, [username, Num])
+  let getGalleryLimit = await ExecuteFuncData(getGalleryLimitSql, [username, Num])
   if (getGallery.length === 0) return res.cc('空空如也')
-  res.status(200).send({
+  return res.status(200).send({
     status: 200,
     message: '获取图片成功',
-    data: Num === 'all' ? getGallery : getGalleryLimit,
+    data: getGalleryLimit,
     Num: getGallery.length,
   })
 }
 
 // 新增名下图库照片
 exports.article_upimage = async (req, res) => {
-  const FileName = config.generateUserId(18) + '.' + req.file.originalname.split('.').pop()
-  const Setpath = config.selpath + FileName
+  if (req.file.length === 0) res.cc('上传文件不能为空')
+  // 大于5M 文件
+  if (req.file.size > 5000 * 1024) return res.cc('文件太大！无法上传', 206)
+  //检测用户名
   const username = req.body.username ? req.body.username : req.auth.username
   if (!username) return res.cc('参数错误！', 404)
-  if (req.file.size > 10000 * 1024) return res.cc('文件太大！无法上传', 206)
   if (!/^image\/(jpeg|png|gif|bmp|webp|svg+xml|heic)$/.test(req.file.mimetype))
     return res.cc('不能上传非图片类的文件！', 206)
-  if (req.file.length === 0) res.cc('上传文件不能为空')
+  // 自定义文件名
+  const FileName = config.generateUserId(18) + '.' + req.file.originalname.split('.').pop()
+  const type = req.file.originalname.split('.').pop()
+  const FileNameWebp = FileName.replace('.' + type, '.webp')
+  // 文件保存路径
+  const Setpath = config.selpath + FileName
   const data = {
     username: username,
     userimage: Setpath,
@@ -296,13 +322,20 @@ exports.article_upimage = async (req, res) => {
   )
   // 如果未超过 文件上限
   if (QueryTheNumberOfPicturesUploadedToday.length < config.MaxFile) {
-    // 假设 buffer 是文件的二进制数据
+    // buffer 是文件的二进制数据
     const buffer = req.file.buffer
     // 将二进制数据写入文件
     fs.writeFile(config.path + FileName, buffer, async (err) => {
       if (err) {
         return res.cc('存储失败，请重新再试', 406)
       } else {
+        // 保存为 WebP 格式
+        await sharp(buffer)
+          .toFormat('webp', {
+            quality: 50, // 设置压缩质量，0-100，质量越高文件越大
+            lossless: false, // false 表示有损压缩，true 表示无损压缩
+          })
+          .toFile(config.path + FileNameWebp)
         const insertGallerySql = `insert into ev_userimage set ?`
         const insertGallery = await ExecuteFuncData(insertGallerySql, data)
         if (insertGallery.affectedRows !== 1) return res.cc('存储失败，请重新再试', 406)
@@ -338,8 +371,11 @@ exports.article_imagedel = async (req, res) => {
     const filePath = `./public/${
       String(QueryWhetherTheImageResourceExists[0].userimage).match(/(?<=\/public\/).*/)[0]
     }`
+    const type = filePath.split('.').pop()
+    const FileNameWebp = filePath.replace('.' + type, '.webp')
     try {
       await unlink(filePath)
+      await unlink(FileNameWebp)
     } catch (err) {
       // console.log(err);
       await ExecuteFuncData(DeleteImageResourceSql, id)
@@ -352,7 +388,6 @@ exports.article_imagedel = async (req, res) => {
     if (DeleteImageResource.affectedRows !== 1) {
       return res.cc('执行失败', 406)
     }
-
     return res.status(200).send({
       status: 200,
       message: '删除成功',

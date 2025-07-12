@@ -29,25 +29,21 @@ const ExecuteFuncData = (sql, data) => {
 const CountArticleDataByDeticle = async (req, res) => {
   await UpdateArticleData()
   // 获取未删除的文章总数
-  const CountAllNum = await ExecuteFunc(
-    'SELECT COUNT(*) AS Num FROM ev_articles where is_delete = 0;',
-  )
+  const CountAllNum = await ExecuteFunc('SELECT COUNT(*) AS Num FROM ev_articles ')
   // 统计 已发布数量 被驳回数量 删除数量
   const CountArticleNum = await ExecuteFunc(`
             SELECT
-            SUM(CASE WHEN is_delete = 0 AND state = 0 THEN 1 ELSE 0 END) AS ArNum,
+            SUM(CASE WHEN is_delete = 0 AND state = 0 THEN 1 ELSE 0 END) AS ArNum, 
             SUM(CASE WHEN is_delete = 1 THEN 1 ELSE 0 END) AS DArNum,
-            SUM(CASE WHEN is_delete = 0 AND state = 1 THEN 1 ELSE 0 END) AS RArNum
+            SUM(CASE WHEN is_delete = 0 AND state = 1 THEN 1 ELSE 0 END) AS RArNum 
         FROM ev_articles;`)
-  
-  const SelectArtCountData = await ExecuteFunc(`Select * from ev_articlecount Limit 10 offset 0`)
 
-  res.status(200).send({
+  return res.status(200).send({
     message: '获取成功/操作成功',
+    status: 200,
     data: {
       CountAllNum: CountAllNum[0].Num,
       CountArticleNum,
-      SelectArtCountData
     },
   })
 }
@@ -55,6 +51,12 @@ const CountArticleDataByDeticle = async (req, res) => {
 const CountNumData = () => {
   const CountNumDataSql = ``
 }
+
+// 获取个人 单条文章数据
+const QueryUserArtData = async (req, res) => {
+  const SelectArtCountData = await ExecuteFunc(`Select * from ev_articlecount Limit 10 offset 0`)
+}
+
 /*
  * 发布年 月统计图
  * 标签分布图

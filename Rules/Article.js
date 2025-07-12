@@ -50,8 +50,8 @@ exports.article_id_schema = {
   },
 }
 exports.article_get_schema = {
-  data: {
-    id,
+  query: {
+    id: joi.string().min(4).max(15).required(),
   },
 }
 

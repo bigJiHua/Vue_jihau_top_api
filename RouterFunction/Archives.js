@@ -58,6 +58,7 @@ exports.getArticleData = async (req, res) => {
       [UID, req.authData.username],
     )
     if (QueryWhetherTheArticleUserHasOperated.length !== 0) {
+      // 区分 携带token的用户是否对此进行过操作
       data.acgoodnum = parseInt(QueryWhetherTheArticleUserHasOperated[0].goodnum) === 1
       data.accollect = parseInt(QueryWhetherTheArticleUserHasOperated[0].collect) === 1
     }
@@ -177,10 +178,10 @@ exports.SearchApi = async (req, res) => {
 // 做站点地图
 exports.sitemapData = async (req, res) => {
   const article = await ExecuteFunc(
-      'SELECT article_id,pub_date FROM ev_articles WHERE state = 0 AND is_delete = 0'
+    'SELECT article_id,pub_date FROM ev_articles WHERE state = 0 AND is_delete = 0',
   )
   const notify = await ExecuteFunc(
-      'SELECT notify_id,pub_date FROM ev_notify WHERE whosee = 0 AND state = 0 AND is_delete = 0'
+    'SELECT notify_id,pub_date FROM ev_notify WHERE whosee = 0 AND state = 0 AND is_delete = 0',
   )
   res.send({
     status: 200,
@@ -188,7 +189,7 @@ exports.sitemapData = async (req, res) => {
     ismessage: false,
     data: {
       article,
-      notify
-    }
+      notify,
+    },
   })
 }

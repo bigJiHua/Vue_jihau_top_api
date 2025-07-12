@@ -99,11 +99,13 @@ exports.regUser = async (req, res) => {
     userinfo.username,
   )
   if (CheckForDuplicateUsernames.length > 0) return res.cc('用户名被占用，请更换其他用户名！', 202)
+  // 检查邮箱是否重复
   const CheckForDuplicateMailboxes = await ExecuteFuncData(
     CheckForDuplicateMailboxesSql,
     userinfo.email,
   )
   if (CheckForDuplicateMailboxes.length > 0) return res.cc('邮箱已被注册，请更换其他邮箱！', 202)
+  // 加密密码
   userinfo.password = bcrypt.hashSync(userinfo.password, 10)
   // 加入唯一用户Id
   userinfo.user_id = config.generateUserId(6)
@@ -118,17 +120,26 @@ exports.regUser = async (req, res) => {
                        CASE WHEN useridentity = 'manager' THEN 1 ELSE 0 END AS isadmin  
                 FROM ev_users  
                 WHERE username = ?`
-  await ExecuteFuncData(insertNewUsersPowerSql, userinfo.username)
-  if (NewUsers.affectedRows !== 1) return res.cc('用户注册失败，请稍后再试', 202)
+  // 检查权限表中是否已存在该用户
+  const checkUserPowerSql = `SELECT * FROM ev_userpower WHERE username = ?`
+  const checkUserPower = await ExecuteFuncData(checkUserPowerSql, userinfo.username)
+  if (checkUserPower.length === 0) {
+    // 如果为存在则插入新的用户权限
+    await ExecuteFuncData(insertNewUsersPowerSql, userinfo.username)
+  } else {
+    // 历史遗留则删除然后再次插入
+    const deleteOldUsersPowerSql = `DELETE FROM ev_userpower WHERE username = ?`
+    const deleteOldUsersPower = await ExecuteFuncData(deleteOldUsersPowerSql, userinfo.username)
+    if (deleteOldUsersPower.affectedRows === 1) {
+      await ExecuteFuncData(insertNewUsersPowerSql, userinfo.username)
+    }
+  }
+  if (NewUsers.affectedRows !== 1) return res.cc('用户注册失败，请稍后再试', 404)
   const markCaptcha = await ExecuteFuncData(markCaptchaSql, data)
   if (markCaptcha.affectedRows !== 1) {
-    return res.status(202).send({
-      status: 202,
-      message: `注册成功，验证码植入失败，请截图并联系站长发送${code}验证码给站长`,
-      data: {
-        code: code,
-        user: userinfo.username,
-      },
+    return res.status(406).send({
+      status: 406,
+      message: `注册成功，验证码植入失败，请联系站长辅助激活账户`,
     })
   }
   regUserMail(userinfo.email, code, userinfo.username)
@@ -139,13 +150,9 @@ exports.regUser = async (req, res) => {
       })
     })
     .catch(() => {
-      return res.status(202).send({
-        status: 202,
-        message: `注册成功，验证码发送失败，请在跳转后的页面中输入${code}`,
-        data: {
-          code: code,
-          user: userinfo.username,
-        },
+      return res.status(406).send({
+        status: 406,
+        message: `注册成功，验证码发送失败，请联系站长辅助激活账户`,
       })
     })
 }
