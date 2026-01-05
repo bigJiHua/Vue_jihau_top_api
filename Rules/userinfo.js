@@ -9,7 +9,8 @@ const user = joi.string().required()
 exports.cag_UserInfo = {
   body: {
     user_id,
-    setData: joi.string().max(120).required(),
+    // 涉及上传base64头像 不要limit
+    setData: joi.string().required(),
   },
 }
 

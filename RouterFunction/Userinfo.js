@@ -18,8 +18,12 @@ exports.getUserInfoList = async (req, res) => {
           ev_users.user_id,ev_users.sex,ev_users.city,ev_users.email,
           ev_users.user_pic,ev_users.user_content,ev_users.birthday,ev_users.state
           FROM ev_users  limit 5 offset ?`
-  const GetFiveUserDataLimits = await ExecuteFuncData(GetFiveUserDataLimitsSql, n)
-  if (GetFiveUserDataLimits.length === 0) return res.cc('数据不能再多了啦！', 204)
+  const GetFiveUserDataLimits = await ExecuteFuncData(
+    GetFiveUserDataLimitsSql,
+    n,
+  )
+  if (GetFiveUserDataLimits.length === 0)
+    return res.cc('数据不能再多了啦！', 204)
   res.status(200).send({
     status: 200,
     message: '获取用户信息列表成功',
@@ -31,7 +35,8 @@ exports.getUserInfoList = async (req, res) => {
 // 文章面板获取用户信息
 exports.authData = async (req, res) => {
   const ID = req.query.id
-  if (!ID || Number(ID) === 404 || ID === 'undefined') return res.cc('参数错误！', 404)
+  if (!ID || Number(ID) === 404 || ID === 'undefined')
+    return res.cc('参数错误！', 404)
   const data = {
     goodnums: 0,
     collects: 0,
@@ -81,7 +86,11 @@ exports.getUserInfoUN = async (req, res) => {
   const UN = req.auth.username
   const data = {}
   // 获取用户基本数据
-  const GetUserDataSql = `select * from ev_users where username=?`
+  const GetUserDataSql = `select 
+  birthday,city,email,
+  registerDate,sex,user_bgc,user_content,
+  user_id,user_pic,useridentity,username
+  from ev_users where username = ?`
   // 查询点赞\收藏
   const SelectGCDataSql = `SELECT SUM(CASE WHEN goodnum = '1' THEN 1 ELSE 0 END) AS goodnums,
         SUM(CASE WHEN collect = '1' THEN 1 ELSE 0 END) AS collects FROM ev_userartdata WHERE username = ?`
@@ -93,16 +102,14 @@ exports.getUserInfoUN = async (req, res) => {
     and d.username=?`
   const sqla = `select  * from ev_articles where username =?  `
   const sqlF = `select * from ev_userrelation where author =? AND relation = 1`
-  const sqlP = `select * from ev_userpower where username = ?`
   const SelectGCData = await ExecuteFuncData(SelectGCDataSql, UN)
   data.goodnums = SelectGCData[0].goodnums
   data.collects = SelectGCData[0].collects
   data.comments = (await ExecuteFuncData(sqlc, UN)).length
   data.articles = (await ExecuteFuncData(sqla, UN)).length
   const GetUserData = await ExecuteFuncData(GetUserDataSql, UN)
-  data.Users = { ...GetUserData[0], password: '' }
+  data.Users = GetUserData[0]
   data.Users.fans = (await ExecuteFuncData(sqlF, UN)).length
-  data.Users.UserPower = await ExecuteFuncData(sqlP, UN)
   res.send({
     status: 200,
     message: '用户信息数据获取成功！',
@@ -114,7 +121,8 @@ exports.getUserInfoUN = async (req, res) => {
 // 修改用户信息
 exports.cagUserInfo = async (req, res) => {
   // 校验SetData是否为空
-  if (req.body.setData && Object.keys(req.body.setData).length === 0) return res.cc('参数异常', 404)
+  if (req.body.setData && Object.keys(req.body.setData).length === 0)
+    return res.cc('参数异常', 404)
   const setUserID = req.body.user_id ? req.body.user_id : req.auth.user_id
   // 校验用户ID Verify User ID 以及状态
   const VerifyUserIDSql = `select * from ev_users where user_id=?`
@@ -122,45 +130,95 @@ exports.cagUserInfo = async (req, res) => {
   const updateUserInformationSql = `update ev_users set ? where user_id=?`
   const VerifyUserID = await ExecuteFuncData(VerifyUserIDSql, setUserID)
   if (VerifyUserID.length !== 1) return res.cc('非法id,错误请求 ！')
-  if (VerifyUserID[0].isact !== 1) return res.cc('错误！账户未激活，无法修改其信息')
-  if (VerifyUserID[0].state !== 0) return res.cc('错误！账户已注销，无法修改其信息')
+  if (VerifyUserID[0].isact !== 1)
+    return res.cc('错误！账户未激活，无法修改其信息')
+  if (VerifyUserID[0].state !== 0)
+    return res.cc('错误！账户已注销，无法修改其信息')
   const cagUserData = JSON.parse(req.body.setData)
-  const updateUserInformation = await ExecuteFuncData(updateUserInformationSql, [
-    cagUserData,
-    setUserID,
-  ])
-  if (updateUserInformation.affectedRows !== 1) return res.cc('更新用户数据失败')
+  const updateUserInformation = await ExecuteFuncData(
+    updateUserInformationSql,
+    [cagUserData, setUserID],
+  )
+  if (updateUserInformation.affectedRows !== 1)
+    return res.cc('更新用户数据失败')
   res.status(200).send({
     status: 200,
     message: '信息更改成功',
   })
 }
 
+const ensureUserPower = async (userId) => {
+  const rows = await ExecuteFuncData(
+      'SELECT user_id FROM ev_userpower WHERE user_id = ?',
+      userId
+  )
+  if (rows.length > 0) return
+  // 幂等插入（防并发）
+  await ExecuteFuncData(
+      `
+    INSERT INTO ev_userpower (username, user_id, isadmin)
+    SELECT username, user_id,
+      CASE WHEN useridentity = 'manager' THEN 1 ELSE 0 END
+    FROM ev_users
+    WHERE user_id = ?
+    AND NOT EXISTS (
+      SELECT 1 FROM ev_userpower WHERE user_id = ?
+    )
+    `,
+      [userId, userId]
+  )
+}
+
 // 查权限
-exports.cagUserPower = async (req, res) => {
-  const type = req.body.type
-  const value = req.body.value === 'true' ? 1 : 0
-  const user = req.auth.user_id
-  // 获取现有的权限信息
-  const SelectUserPowerSql = `select * from ev_userpower where user_id = ?`
-  const SelectUserPower = await ExecuteFuncData(SelectUserPowerSql, user)
-  if (type === 'get' && value === 1)
+exports.cagUserPower =async (req, res) => {
+  const userId = req.auth.user_id
+  // 🧱 权限网关：确保存在
+  await ensureUserPower(userId)
+  const { type, value } = req.body
+  const ALLOW_KEYS = ['isspace', 'isrel', 'isfans', 'islike', 'iscol']
+  /* ========= 获取 ========= */
+  if (type === 'get') {
+    const rows = await ExecuteFuncData(
+        `SELECT ${ALLOW_KEYS.join(',')} FROM ev_userpower WHERE user_id = ?`,
+        userId
+    )
     return res.status(200).send({
       status: 200,
-      message: '获取权限成功',
-      data: SelectUserPower,
+      message: '权限获取成功',
+      data: rows[0],
     })
-  // 修改用户权限
-  const ChangUserPowerSql = `UPDATE ev_userpower set ? WHERE user_id = ?`
-  if (SelectUserPower[0][type] !== value) {
-    const data = {
-      [type]: value,
-    }
-    const ChangUserPower = await ExecuteFuncData(ChangUserPowerSql, [data, user])
-    if (ChangUserPower.affectedRows !== 1) return res.cc('修改失败!', 403)
-    return res.cc('修改成功！', 200)
   }
-  return res.cc('权限未改变!', 403)
+  if (!ALLOW_KEYS.includes(type)) {
+    return res.cc('非法权限字段', 400)
+  }
+  if (value !== 'true' && value !== 'false') {
+    return res.cc('非法权限值', 400)
+  }
+  const newValue = value === 'true' ? 1 : 0
+  const rows = await ExecuteFuncData(
+      'SELECT * FROM ev_userpower WHERE user_id = ?',
+      userId
+  )
+  if (rows[0][type] === newValue) {
+    return res.send({
+      status: 200,
+      message: '权限未发生变化',
+      data: rows[0],
+    })
+  }
+  await ExecuteFuncData(
+      `UPDATE ev_userpower SET ${type} = ? WHERE user_id = ?`,
+      [newValue, userId]
+  )
+  const updated = await ExecuteFuncData(
+      `SELECT ${ALLOW_KEYS.join(',')} FROM ev_userpower WHERE user_id = ?`,
+      userId
+  )
+  return res.send({
+    status: 200,
+    message: '权限修改成功',
+    data: updated[0],
+  })
 }
 
 // 修改用户密码
@@ -171,17 +229,30 @@ exports.cagUserPwd = async (req, res) => {
   if (!user) return res.cc('用户状态异常！', 404)
   // 获取当前用户密码 Get current user password
   const GetCurrentUserPasswordSql = `select password from ev_users where username=?`
-  const GetCurrentUserPassword = await ExecuteFuncData(GetCurrentUserPasswordSql, user)
-  if (GetCurrentUserPassword.length === 0) return res.cc('错误，该用户获取密码异常', 500)
-  const Checkoldpwd = bcrypt.compareSync(oldpwd, GetCurrentUserPassword[0].password)
+  const GetCurrentUserPassword = await ExecuteFuncData(
+    GetCurrentUserPasswordSql,
+    user,
+  )
+  if (GetCurrentUserPassword.length === 0)
+    return res.cc('错误，该用户获取密码异常', 500)
+  const Checkoldpwd = bcrypt.compareSync(
+    oldpwd,
+    GetCurrentUserPassword[0].password,
+  )
   if (!Checkoldpwd) return res.cc('修改失败，原密码错误', 404)
-  const Check_nopwd = bcrypt.compareSync(newpwd, GetCurrentUserPassword[0].password)
+  const Check_nopwd = bcrypt.compareSync(
+    newpwd,
+    GetCurrentUserPassword[0].password,
+  )
   if (Check_nopwd) return res.cc('修改失败，原密码不能与旧密码相同', 404)
   // 更新用户密码 update user password
   const updateUserPasswordSql = `update ev_users set password=? where username=?`
   const password = bcrypt.hashSync(newpwd, 10)
   if (!password) return res.cc('修改失败', 500)
-  const updateUserPassword = await ExecuteFuncData(updateUserPasswordSql, [password, user])
+  const updateUserPassword = await ExecuteFuncData(updateUserPasswordSql, [
+    password,
+    user,
+  ])
   if (updateUserPassword.affectedRows !== 1) return res.cc('错误，请重试', 500)
   res.status(200).send({
     status: 200,
@@ -191,12 +262,28 @@ exports.cagUserPwd = async (req, res) => {
 
 // 自我销户
 exports.delUserInfo = async (req, res) => {
-  const user = req.query.user
-  const deluser = req.query.deluser
+  const user = req.query.user === 'null' ? req.auth.username : req.query.user
+  const deluser = req.query.deluser === 'null' ? req.auth.username : req.query.deluser
   // 如果是自己注销
   if (user === deluser) {
+    // 查身份
+    // 同时获取指定用户的身份 + 表中useridentity≠'user'的总数量
+    // 目标1：指定username对应的身份
+    // 目标2：表中所有useridentity≠'user'的记录数
+    const checkUserSql = `
+    SELECT
+      (SELECT useridentity FROM ev_users WHERE username = ?) AS del_identity,
+      (SELECT COUNT(*) FROM ev_users WHERE useridentity != 'user' AND state = 0) AS total_admin;`
+    const checkUser = await ExecuteFuncData(checkUserSql, deluser)
+    if (!checkUser[0].del_identity) return res.cc('非法闯入！', 401)
+    if (checkUser[0].del_identity != 'user' && checkUser[0].total_admin <= 1) {
+      return res.status(404).send({
+        status: 404,
+        message: '亲爱的，你不能删除你这个账户噢！',
+      })
+    }
     // 注销用户 logout user
-    const logoutUserSql = `update ev_users set state=1 where username=? `
+    const logoutUserSql = `update ev_users set state = 1 where username = ? `
     const logoutUser = await ExecuteFuncData(logoutUserSql, deluser)
     if (logoutUser.affectedRows === 0) return res.cc('注销失败', 404)
     res.status(200).send({
@@ -213,14 +300,18 @@ exports.UserActive = async (req, res) => {
   const username = req.auth.username
   const { articleid, type, comment } = req.body
   if (typeof articleid !== 'string') return res.cc('文章id格式错误！')
-  const timeType = type !== 'comment' && type === 'goodnum' ? 'goodtime' : 'collecttime'
+  const timeType =
+    type !== 'comment' && type === 'goodnum' ? 'goodtime' : 'collecttime'
   // 判断type 用于区分作者是点赞收藏还是评论
   if (type === 'goodnum' || type === 'collect') {
     // 查询这个用户之前有没有操作过 （如果有操作过是可以查询到article_id的）
     // 校验用户操作 Verify user actions
     const VerifyUserActionsSql =
       'select article_id from ev_userartdata where username=? and article_id=?'
-    const VerifyUserActions = await ExecuteFuncData(VerifyUserActionsSql, [username, articleid])
+    const VerifyUserActions = await ExecuteFuncData(VerifyUserActionsSql, [
+      username,
+      articleid,
+    ])
     // 如果没有操作过 则新插入
     if (VerifyUserActions.length <= 0) {
       // 插入用户操作 InsertUserAction
@@ -242,10 +333,14 @@ exports.UserActive = async (req, res) => {
     } else {
       // 如果操作过 则更新之前的操作 【例如 点赞、收藏变为取消】
       const ChangUserArtDataSql = `UPDATE ev_userartdata SET ${type} = IF(${type} = '0', '1', '0') WHERE username = ? AND article_id = ?`
-      const ChangUserArtData = await ExecuteFuncData(ChangUserArtDataSql, [username, articleid])
+      const ChangUserArtData = await ExecuteFuncData(ChangUserArtDataSql, [
+        username,
+        articleid,
+      ])
       if (ChangUserArtData.affectedRows !== 1) return res.cc('失败')
       // 插入用户操作时间戳
-      const InsertUserTimeSql = 'update ev_userartdata set ? where username = ? and article_id = ?'
+      const InsertUserTimeSql =
+        'update ev_userartdata set ? where username = ? and article_id = ?'
       const InsertUserTime = await ExecuteFuncData(InsertUserTimeSql, [
         {
           [timeType]: new Date().getTime(),
@@ -260,25 +355,56 @@ exports.UserActive = async (req, res) => {
       })
     }
   } else if (type === 'comment') {
+    let ischeck = false
     const data = {
       username,
       comment,
       article_id: articleid,
       pub_date: config.pub_date,
       commentid: config.generateUserId(12),
+      is_allow: 1,
     }
-    // 插入用户评论 insert user comment
-    const insertUserCommentSql = 'insert into ev_usercomment set ?'
-    const insertUserComment = await ExecuteFuncData(insertUserCommentSql, data)
-    if (insertUserComment.affectedRows !== 1) return res.cc(`评论失败`)
+    // 检查作者权限
+    const checkAuthorPower = await ExecuteFuncData(
+      'select comment_review from ev_artpower where article_id=?',
+      articleid,
+    )
+    // 如果开启了校验
+    if (checkAuthorPower.length !== 0) {
+      if (Number(checkAuthorPower[0].comment_review) === 1) {
+        data.is_allow = 0
+        ischeck = true
+      }
+    }
+    // 插入用户评论
+    const insertSql = 'INSERT INTO ev_usercomment SET ?'
+    const insertResult = await ExecuteFuncData(insertSql, data)
+    if (insertResult.affectedRows !== 1) return res.cc('评论失败')
+    let sendData = []
+    if (!ischeck) {
+      // 获取自增ID
+      const newId = insertResult.insertId
+      // 查询刚插入的完整记录
+      const [newComment] = await ExecuteFuncData(
+        'SELECT * FROM ev_usercomment WHERE id=?',
+        newId,
+      )
+      sendData = newComment
+    }
     res.status(200).send({
       status: 200,
       message: '评论成功!',
+      data: sendData,
+      ischeck
     })
   } else if (type === 'delcomment') {
     // 删除用户评论 delete user comments
-    const deleteUserCommentsSql = 'delete from ev_usercomment where username=? and article_id=?'
-    const deleteUserComments = await ExecuteFuncData(deleteUserCommentsSql, [username, articleid])
+    const deleteUserCommentsSql =
+      'delete from ev_usercomment where username=? and article_id=?'
+    const deleteUserComments = await ExecuteFuncData(deleteUserCommentsSql, [
+      username,
+      articleid,
+    ])
     if (deleteUserComments.affectedRows !== 1) return res.cc('删除失败')
     res.status(200).send({
       status: 200,
@@ -351,13 +477,33 @@ exports.UserDelActive = async (req, res) => {
 
 // Space页面获取的数据
 exports.getSpaceData = async (req, res) => {
+  const data = {
+    goodnums: 0,
+    collects: 0,
+    articles: 0,
+    Users: {},
+  }
+  const UN = req.query.user
+  // 获取点赞和收藏数量
+  const SelectGCDataSql = `SELECT
+        SUM(CASE WHEN goodnum = '1' THEN 1 ELSE 0 END) AS goodnums,
+        SUM(CASE WHEN collect = '1' THEN 1 ELSE 0 END) AS collects FROM ev_userartdata WHERE username = ?`
+  const sqla = `select  * from ev_articles where username =?  `
+  const sqlF = `select * from ev_userrelation where author =? AND relation = 0`
+  const SelectGCData = await ExecuteFuncData(SelectGCDataSql, UN)
+  data.goodnums = SelectGCData[0].goodnums // 点赞数
+  data.collects = SelectGCData[0].collects // 收藏数
+  data.fans = (await ExecuteFuncData(sqlF, UN)).length // 粉丝数
+  data.articles = (await ExecuteFuncData(sqla, UN)).length // 文章数
   const { isSelf, UserData } = req.body
+  data.Users = UserData
   res.send({
     status: 200,
-    message: '获取成功',
+    message: '用户信息数据获取成功！',
+    ismessage: false,
     data: {
+      UserData: data,
       isSelf,
-      UserData,
     },
   })
 }
@@ -381,7 +527,10 @@ exports.postUserRelation = async (req, res) => {
   if (author === username) return res.cc('你很酷，但是不能给自己点哟！', 404)
   // 查关系型数据库表是否存在关系
   const SelectUserRelationSql = `select * from ev_userrelation where author = ? and username = ?`
-  const SelectUserRelation = await ExecuteFuncData(SelectUserRelationSql, [author, username])
+  const SelectUserRelation = await ExecuteFuncData(SelectUserRelationSql, [
+    author,
+    username,
+  ])
   // 获取author目标用户的id
   const SelectAuthorIdSql = `select user_id from ev_users where username = ?`
   const SelectAuthorId = await ExecuteFuncData(SelectAuthorIdSql, author)
@@ -390,7 +539,10 @@ exports.postUserRelation = async (req, res) => {
   // 如果没有历史关系就添加
   if (SelectUserRelation.length === 0) {
     const InsertUserRelationSql = `insert into ev_userrelation set ?`
-    const InsertUserRelation = await ExecuteFuncData(InsertUserRelationSql, data)
+    const InsertUserRelation = await ExecuteFuncData(
+      InsertUserRelationSql,
+      data,
+    )
     if (InsertUserRelation.affectedRows !== 1) return res.cc('操作失败', 500)
     return res.send({
       status: 200,
@@ -406,7 +558,10 @@ exports.postUserRelation = async (req, res) => {
                          END,
               pub_date = UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000
           WHERE author = ? AND username = ?`
-    const PatchUserRelation = await ExecuteFuncData(PatchUserRelationSql, [author, username])
+    const PatchUserRelation = await ExecuteFuncData(PatchUserRelationSql, [
+      author,
+      username,
+    ])
     if (PatchUserRelation.affectedRows !== 1) return res.cc('操作失败', 500)
     return res.send({
       status: 200,
@@ -458,9 +613,15 @@ exports.getUserRelation = async (req, res) => {
     }
   }
   if (met === 'get') {
-    SelectUserRelation = await ExecuteFuncData(SelectUserRelationSql, [author, username])
+    SelectUserRelation = await ExecuteFuncData(SelectUserRelationSql, [
+      author,
+      username,
+    ])
   } else {
-    SelectUserRelation = await ExecuteFuncData(SelectUserRelationSql, [author, Num])
+    SelectUserRelation = await ExecuteFuncData(SelectUserRelationSql, [
+      author,
+      Num,
+    ])
   }
   // 如果查询为空
   if (SelectUserRelation.length === 0)
@@ -502,23 +663,32 @@ exports.UserMessageHandler = async (req, res) => {
     JOIN ev_users u1 ON um.getuser = u1.user_id
     WHERE um.is_delete = 0 AND u.state = 0 AND um.getuser = ?
     LIMIT 10 OFFSET ?`
-  const SelectUserMessageBytoday = await ExecuteFuncData(SelectUserMessageBytodaySql, [userId, Num])
+  const SelectUserMessageBytoday = await ExecuteFuncData(
+    SelectUserMessageBytodaySql,
+    [userId, Num],
+  )
   // 获取全体用户消息
   const SelectAllSystemMessageBytodaySql = `Select * from ev_sitemsg where getuser = 'all' limit 10 offset ?`
-  const SelectAllSystemMessageBytoday = await ExecuteFuncData(SelectAllSystemMessageBytodaySql, Num)
+  const SelectAllSystemMessageBytoday = await ExecuteFuncData(
+    SelectAllSystemMessageBytodaySql,
+    Num,
+  )
   // 获取系统对用户发送的消息
   const SelectSystemMessageBytodaySql = `Select * from ev_sitemsg where getuser = ? limit 10 offset ?`
-  const SelectSystemMessageBytoday = await ExecuteFuncData(SelectSystemMessageBytodaySql, [
-    userId,
-    Num,
-  ])
+  const SelectSystemMessageBytoday = await ExecuteFuncData(
+    SelectSystemMessageBytodaySql,
+    [userId, Num],
+  )
   res.send({
     status: 200,
     message: '获取消息成功',
     ismessage: false,
     data: {
       usermsg: SelectUserMessageBytoday,
-      systemmsg: [...SelectAllSystemMessageBytoday, ...SelectSystemMessageBytoday],
+      systemmsg: [
+        ...SelectAllSystemMessageBytoday,
+        ...SelectSystemMessageBytoday,
+      ],
     },
   })
 }

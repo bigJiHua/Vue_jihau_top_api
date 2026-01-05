@@ -9,14 +9,16 @@ exports.router_getSetting = async (req, res) => {
     // 获取设置轮播图选项 Get set carousel options
     const GetSetCarouselOptionsSql = `select 
         ev_setting.set_url,ev_setting.set_difault,ev_setting.set_title,ev_setting.set_change
-        from ev_setting where set_name=?`
+        from ev_setting where set_name= ? AND set_difault01 != 1`
     const GetSetCarouselOptions = await ExecuteFuncData(GetSetCarouselOptionsSql, getValue)
-    if (GetSetCarouselOptions.length === 0) return res.cc('什么也没找到', 404)
+    let isOpen = true
+    if (GetSetCarouselOptions.length === 0) isOpen = false
     return res.status(200).send({
       status: 200,
       message: '获取成功',
       ismessage: false,
       data: GetSetCarouselOptions,
+      isOpen
     })
   } else if (getValue === 'DevP') {
     // 获取设置发展历史选项 GetSetDevelopmentHistoryOptions
@@ -48,6 +50,13 @@ exports.router_setLunbo = async (req, res) => {
   const getmet = req.body.met
   if (!getmet) return res.cc('参数错误')
   if (getmet === 'get') {
+    // 获取设置轮播图选项 Get set carousel options
+    const GetSetCarouselOptionsSql = `select 
+        ev_setting.set_url,ev_setting.set_difault,ev_setting.set_title,ev_setting.set_change
+        from ev_setting where set_name= 'Lunbo' AND set_difault01 != 1`
+    const GetSetCarouselOptions = await ExecuteFunc(GetSetCarouselOptionsSql)
+    let isOpen = true
+    if (GetSetCarouselOptions.length === 0) isOpen = false
     // 获取轮播图设置 Get carousel settings
     const GetCarouselSettingsSql = `select * from ev_setting where set_name='Lunbo'`
     const GetCarouselSettings = await ExecuteFunc(GetCarouselSettingsSql)
@@ -55,6 +64,7 @@ exports.router_setLunbo = async (req, res) => {
       status: 200,
       message: '获取成功',
       data: GetCarouselSettings,
+      isOpen
     })
   } else if (getmet === 'cag') {
     const data = JSON.parse(req.body.data)
@@ -74,6 +84,16 @@ exports.router_setLunbo = async (req, res) => {
         message: '数据更新失败',
       })
     }
+  } else if (getmet === 'isopen') {
+    // 这个是轮播的总开关
+    let state = 0
+    if (req.body.data === 'true') state = 1
+    const UpdateState = await ExecuteFunc(`update ev_setting set set_difault01=${state} where set_name='Lunbo'`)
+    if (UpdateState.affectedRows === 0) return res.cc('操作失败', 500)
+    return res.status(200).send({
+      status: 200,
+      message: '数据更新成功'
+    })
   }
 }
 

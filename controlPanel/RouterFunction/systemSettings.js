@@ -213,6 +213,7 @@ exports.router_dbDataList = async (req, res) => {
   }
 }
 
+const { setSystemLogFunc } = require('../../Implement/ExecuteSystemLog')
 // 反馈方法 1 友链申请
 exports.feedback_case_sps = async (req, res) => {
   const met = req.body.met
@@ -225,9 +226,10 @@ exports.feedback_case_sps = async (req, res) => {
         FROM 
             ev_fromdata;`
   // 接口常带2 获取 申请通道权限是否开启
-  const SelectReqPower = await ExecuteFunc(
-    `Select * from website_settings where setting_key = 'spsport'`,
-  )
+  const SelectReqPower = await ExecuteFunc(`Select * from website_settings where setting_key = 'spsport'`)
+  if (SelectReqPower.length === 0) {
+    await setSystemLogFunc('website_settings', 'setting_key未设置spsport', '404', 'system')
+  }
   const selectAllNum = await ExecuteFunc(selectAllNumSql)
   if (met === 'get') {
     const status = req.body.status
@@ -302,6 +304,7 @@ exports.website_power = async (req, res) => {
     value_type: req.body.value_type,
     description: req.body.description,
     updated_by: req.auth.user_id,
+    is_system: req.body.is_system
   }
   const insetPowerSql = `INSERT INTO website_settings SET ?`
   try {
@@ -319,14 +322,32 @@ exports.website_power = async (req, res) => {
     console.error('数据库插入失败：', err)
     return res.cc('插入失败，服务端发生错误', 500)
   }
-  return res.cc('操作成功！', 200)
 }
 // 获取/更改站点权限基础数据
 exports.powerdata = async (req, res) => {
   const met = req.body.met
   switch (met) {
     case 'get': {
-      const GetPowerSql = `SELECT id,group_key, setting_key, setting_value, value_type, description, updated_by FROM website_settings`
+      const GetPowerSql = `SELECT 
+      id,group_key, setting_key, setting_value, 
+      value_type, description, updated_by, is_system 
+      FROM website_settings Where is_system != 2`
+      const GetPower = await ExecuteFunc(GetPowerSql)
+      if (GetPower.length !== 0) {
+        return res.send({
+          status: 200,
+          message: '获取成功',
+          data: GetPower,
+        })
+      } else {
+        return res.cc('暂无数据', 404)
+      }
+    }
+    case 'getS': {
+      const GetPowerSql = `SELECT 
+      id,group_key, setting_key, setting_value, 
+      value_type, description, updated_by, is_system 
+      FROM website_settings Where is_system = 1 AND group_key = 'api'`
       const GetPower = await ExecuteFunc(GetPowerSql)
       if (GetPower.length !== 0) {
         return res.send({
@@ -339,10 +360,10 @@ exports.powerdata = async (req, res) => {
       }
     }
     case 'cag': {
-      const { id, group_key, setting_key, setting_value, value_type, description } = JSON.parse(
+      const { id, group_key, setting_key, setting_value, value_type, description, is_system } = JSON.parse(
         req.body.data,
       )
-      if (id === 0 || id === '' || id === '0') return res.cc('参数异常 ID不能为空', 400)
+      if (id === 0 || id === '' || id === '0' || id === undefined || id === null) return res.cc('参数异常 ID不能为空', 400)
       const OrData = JSON.parse(req.body.data)
       // 简单非空判断
       const requiredFields = [
@@ -364,12 +385,52 @@ exports.powerdata = async (req, res) => {
         value_type,
         description,
         updated_by: req.auth.user_id,
+        is_system
+      }
+      if (setting_key === '删除' && setting_value === '删除') {
+        delete data.setting_key
+        delete data.setting_value
+        data.is_system = 2
+      } else {
+
+      }
+      // 检测是否为系统保留项 可增加不可删除
+      if (is_system) {
+        const SelectSys = await ExecuteFuncData(`SELECT * FROM website_settings WHERE id = ?`, id)
+        if (SelectSys.length === 0) return res.cc('参数异常，未找到该数据', 400)
+        if (SelectSys[0].is_system === 1) {
+          delete data.is_system;
+          delete data.setting_key;
+        }
       }
       const CagPowerSql = `
             UPDATE website_settings SET ? WHERE id = ?`
       const CagPower = await ExecuteFuncData(CagPowerSql, [data, id])
       if (CagPower.affectedRows !== 1) return res.cc('更新失败，未生效', 500)
       return res.cc('更新成功', 200)
+    }
+    case 'cags': {
+      const { id, setting_key, setting_value } = JSON.parse(req.body.data)
+      if (setting_value !== 'true' && setting_value !== 'false') return res.cc('参数异常，参数与类型不符', 203)
+      if (id === 0 || id === '' || id === '0' || id === undefined || id === null) return res.cc('参数异常 ID不能为空', 203)
+      const ChangeSettings = await ExecuteFuncData(`Update website_settings SET setting_value = ? WHERE id =? AND setting_key =?`, [setting_value, id, setting_key])
+      if (ChangeSettings.affectedRows !== 1) return res.cc('更新失败，未生效', 500)
+      return res.send({
+        status: 200,
+        message: '更新成功',
+      })
+    }
+    case 'search': {
+      const SearchKey = JSON.parse(req.body.data).searchKey
+      if (!SearchKey) return res.cc('参数异常', 400)
+      const SearchPowerSql = `SELECT id,group_key, setting_key, setting_value, value_type, description, updated_by, is_system FROM website_settings WHERE setting_key = ?`
+      const SearchPower = await ExecuteFuncData(SearchPowerSql, SearchKey)
+      if (SearchPower.length === 0) return res.cc('暂无数据', 404)
+      return res.send({
+        status: 200,
+        message: '获取成功',
+        data: SearchPower,
+      })
     }
     default: {
       return res.cc('未知方法', 400)

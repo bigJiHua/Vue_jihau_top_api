@@ -9,6 +9,7 @@ const bcrypt = require('bcryptjs/dist/bcrypt')
 exports.VerifyAdministratorIdentity = async (req, res, next) => {
   // 校验管理员身份 Verify administrator identity
   const getUser = req.auth !== undefined ? req.auth.username : req.body.username
+  if (getUser === undefined) return res.cc('未知访客！', 401)
   const useridentity = 'manager'
   // 校验身份 verify identity
   const verifyIdentitySql = `select * from ev_users where username=? and useridentity=?`
@@ -22,19 +23,19 @@ exports.VerifyAdministratorIdentity = async (req, res, next) => {
     next()
   }
 }
-// 校验历史token是否可用
-exports.verifyUserToken = (token) => {
-  // 如果token = undefined返回false
-  if (!token) return false
-  try {
-    // Verifying the token using express-jwt
-    const decodedToken = jwt.verify(token, config.jwtSecretKey, { algorithms: ['HS256'] })
-    if (decodedToken) return true
-  } catch (err) {
-    // 如果token = 解析错误返回false
-    return false
-  }
-}
+// 校验历史token是否可用 废弃
+// exports.verifyUserToken = (token) => {
+//   // 如果token = undefined返回false
+//   if (!token) return false
+//   try {
+//     // Verifying the token using express-jwt
+//     const decodedToken = jwt.verify(token, config.jwtSecretKey, { algorithms: ['HS256'] })
+//     if (decodedToken) return true
+//   } catch (err) {
+//     // 如果token = 解析错误返回false
+//     return false
+//   }
+// }
 // 校验普通get请求解析用户数据
 exports.verifyToken = (req, res, next) => {
   // 获取请求头中的 Authorization 头部，通常包含 token
@@ -56,19 +57,17 @@ exports.verifyToken = (req, res, next) => {
   // 继续执行下一个中间件或路由
   next()
 }
-// TODO 检查请求web平台 暂未开发
-exports.CheckReqWebsite = (req, res, next) => {
-  // const data = req.he
-}
+
 /* 这是一个用于检查用户状态的中间件 */
 // 检查用户状态 CheckUserStatus
 exports.CheckUserStatus = async (req, res, next) => {
   const username = req.body.username ? req.body.username : req.query.username
-  const user = req.query.user ? req.query.user : req.body.user
-  const deluser = req.query.deluser ? req.query.deluser : req.body.deluser
+  let user = req.query.user ? req.query.user : req.body.user
+  let deluser = req.query.deluser ? req.query.deluser : req.body.deluser
   const CheckUserStatusSql = `select * from ev_users where username=? and state=0`
   const CheckUserIsactSql = `select * from ev_users where username=? and isact=1`
   if (deluser) {
+    if (deluser === 'null') deluser = req.auth.username
     const CheckUserStatus = await ExecuteFuncData(CheckUserStatusSql, deluser)
     if (CheckUserStatus.length === 0) return res.cc('用户账户已注销,无法对其进行操作！', 202)
   }
@@ -79,6 +78,7 @@ exports.CheckUserStatus = async (req, res, next) => {
     if (CheckUserIsact.length === 0) return res.cc('用户账户未激活,无法对其进行操作！', 404)
     next()
   } else if (user !== undefined) {
+    if (user === 'null') user = req.auth.username
     const CheckUserStatus = await ExecuteFuncData(CheckUserStatusSql, user)
     if (CheckUserStatus.length === 0) return res.cc('用户账户已注销,无法对其进行操作！', 404)
     const CheckUserIsact = await ExecuteFuncData(CheckUserIsactSql, user)
@@ -99,7 +99,7 @@ exports.CheckUserisTrue = async (req, res, next, power_type) => {
   let isSelfBoolean = false
   const CheckUserStatusSql = `select username,user_id,useridentity,sex,city,user_pic,user_bgc,user_content,birthday,registerDate from ev_users where username=?`
   if (user !== undefined) {
-    if (user.toLowerCase() === getUser.toLowerCase()) isSelfBoolean = true
+    if (getUser && user.toLowerCase() === getUser.toLowerCase()) isSelfBoolean = true
     const CheckUserStatus = await ExecuteFuncData(CheckUserStatusSql, user)
     if (CheckUserStatus.length === 0) return res.cc('用户不存在！', 404)
     // 如果用户存在 则检查隐私权限

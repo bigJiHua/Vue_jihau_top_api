@@ -9,7 +9,7 @@ exports.setUserLoginLog = async (req, { user_id, token, status, err_message }) =
     user_id: user_id,
     token: token,
     login_time: new Date().getTime(),
-    login_ip: req.headers.host,
+    login_ip: req.socket.remoteAddress,
     login_device: JSON.stringify(req.headers['user-agent']),
     login_lang: JSON.stringify(req.headers['accept-language']),
     status: status,

@@ -1,6 +1,7 @@
 /* 这是一个关于文章的 路由【处理模块】 */
 const config = require('../config')
 const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
+const ExecuteFunc = require('../Implement/ExecuteFunction')
 /*
   article_id: "Y1YZ60"
   content: "<p>使用Java构建基于Spring的RESTful API"
@@ -172,4 +173,31 @@ exports.getUserRelation = async (req, res) => {
       Beflist: met === 'Beflist' ? SelectUserRelation : [],
     },
   })
+}
+
+// 获取space宣传页的作者名单
+exports.spaceUserList = async (req, res) => {
+  const data = await ExecuteFunc(`SELECT 
+    u.username,
+    u.user_pic,
+    u.user_content,
+    u.user_bgc,
+    t.article_count
+    FROM ev_users u
+    JOIN (
+        SELECT username, COUNT(article_id) AS article_count
+        FROM ev_articles
+        GROUP BY username
+        ORDER BY article_count DESC
+        LIMIT 3
+    ) t ON u.username = t.username
+    ORDER BY t.article_count DESC;
+    `)
+  if (data.length === 0) return res.cc('空空如也', 204)
+    return res.send({
+      status: 200,
+      message: '获取成功',
+      ismessage: false,
+      data,
+    })
 }

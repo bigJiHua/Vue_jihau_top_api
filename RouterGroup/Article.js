@@ -4,6 +4,7 @@ const router = express.Router()
 const expressJoi = require('@escook/express-joi')
 const config = require('../config')
 const { CheckUserPower } = require('../Implement/middleware/CheckUserMiddleware')
+const { UpdateUserArticlePower } = require('../Implement/middleware/UpdateSomeData')
 /* 文件上传 */
 const multer = require('multer')
 const storage = multer.diskStorage({
@@ -39,8 +40,9 @@ router.post(
   article_function.article_put,
 ) // 新增文章
 router.post('/delart?', expressJoi(ArticleRoules.article_id_schema), article_function.article_del) // 删除文章
-router.post('/cagart', expressJoi(ArticleRoules.article_cag_schema), article_function.article_cag) // 修改文章
+router.post('/cagart', expressJoi(ArticleRoules.article_cag_schema), UpdateUserArticlePower ,article_function.article_cag) // 修改文章
 router.get('/getart', expressJoi(ArticleRoules.article_get_schema), article_function.article_get) // 获取编辑文章
+router.post('/cagartpower', expressJoi(ArticleRoules.article_cag_schema), article_function.article_cagpower) // 修改文章权限
 router.post('/img', expressJoi(ArticleRoules.article_getimage), article_function.article_image) // 获取名下图片
 router.post(
   '/upimg',

@@ -1,5 +1,6 @@
 const express = require('express')
 const { expressjwt: expressJWT } = require('express-jwt')
+const jwt = require('jsonwebtoken')
 const bodyParser = require('body-parser')
 const session = require('express-session')
 const cors = require('cors')
@@ -7,48 +8,71 @@ const Joi = require('joi')
 const config = require('./config')
 const webapp = express()
 
+require('./calculation/ArticleStatUpdater/cronFunc') // 引入定时任务脚本
 /* 中间件 */
 const allowedOrigin = [
   'http://192.168.0.103:5173',
   'http://192.168.0.103:3000',
   'http://localhost:5173',
   'http://localhost:3000',
+  'http://localhost:888',
 ]
 webapp.use(
-  cors({
-    origin: allowedOrigin, // 指定前端地址
-    credentials: true, // 允许携带 cookie
-    methods: ['GET', 'POST', 'OPTIONS', 'PATCH'], // 必须包含你使用的方法
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'viewportwidth',
-      'viewportheight',
-      'pixelratio',
-      'navigatorplatform',
-    ],
-  }),
+    cors({
+      origin: allowedOrigin, // 指定前端地址
+      credentials: true, // 允许携带 cookie
+      methods: ['GET', 'POST', 'OPTIONS', 'PATCH'], // 必须包含你使用的方法
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'viewportwidth',
+        'viewportheight',
+        'pixelratio',
+        'navigatorplatform'
+      ],
+    }),
 )
 webapp.use(
-  bodyParser.urlencoded({
-    limit: '10mb',
-    extended: true,
-  }),
+    bodyParser.urlencoded({
+      limit: '10mb',
+      extended: true,
+    }),
 )
 // 配置解析session中间件
 webapp.use(
-  session({
-    secret: config.sessionKey, // 用于加密 session ID 的字符串（必须）
-    resave: false, // 强制每次请求都保存 session（推荐 false）
-    saveUninitialized: true, // 初始化未设置内容的 session 也保存（推荐 true）
-    cookie: {
-      maxAge: 1000 * 60 * 1, // session 有效期：1分钟
-      secure: false, // 确保http能发送cookie
-    },
-  }),
+    session({
+      secret: config.sessionKey, // 用于加密 session ID 的字符串（必须）
+      resave: false, // 强制每次请求都保存 session（推荐 false）
+      saveUninitialized: true, // 初始化未设置内容的 session 也保存（推荐 true）
+      cookie: {
+        maxAge: 1000 * 60 * 1, // session 有效期：1分钟
+        secure: false, // 确保http能发送cookie
+      },
+    }),
 )
 // 封装自定义全局中间件
 const { setUserPXData } = require('./Implement/ExecuteUserData')
+const { CheckWebSiteStatus } = require('./Implement/ExecuteSystemStatus')
+const ExecuteFunction = require("./Implement/ExecuteFunction")
+
+webapp.use(async (req, res, next) => {
+  try {
+    const token = req.headers.authorization.replace('Bearer ', '')
+    // 解析 token
+    const tokenData = jwt.verify(token, config.jwtSecretKey, { algorithms: ['HS256'] })
+    // 将解析的数据存储在请求对象中，以便后续路由使用
+    if (tokenData.user_id) {
+      const CheckAdmin = await ExecuteFunction(`Select useridentity from ev_users WHERE user_id = '${tokenData.user_id}'`)
+      if (CheckAdmin[0].useridentity === 'manager') {
+        next()
+      } else {
+        await CheckWebSiteStatus(req, res, next)
+      }
+    }
+  } catch (err) {
+    await CheckWebSiteStatus(req, res, next)
+  }
+})
 webapp.use(async (req, res, next) => {
   res.cc = function (err, status) {
     res.status(status === undefined ? 206 : status).send({
@@ -63,7 +87,7 @@ webapp.use(async (req, res, next) => {
 
 /* 路由模块 */
 const article_list_router = require('./RouterGroup/Article')
-const user_login_Router = require('./RouterGroup/Login')
+const user_auth_Router = require('./RouterGroup/Auth')
 const get_data_Router = require('./RouterGroup/Data')
 const userinfo_Router = require('./RouterGroup/Userinfo')
 const setting_Router = require('./RouterGroup/Setting')
@@ -76,12 +100,14 @@ webapp.use('/api/article', expressJWT(config.options), article_list_router) // �
 webapp.use('/api/users', expressJWT(config.options), userinfo_Router) // 权限接口 用户信息的增删改查
 webapp.use('/api/setting', expressJWT(config.options), setting_Router) // 权限接口 管理员修改站点信息
 webapp.use('/api/Ctrl', expressJWT(config.options), CtrlAPIPort) // 权限接口 后台管理面板接口 严格控制
-webapp.use('/api/Count', CountRG) // 后台 未开发
-webapp.use('/api/my', user_login_Router) // 登录注册 非权限接口
-webapp.use('/api/getmail', user_mail_Router) // 获取验证码 非权限接口
+webapp.use('/api/Count', expressJWT(config.options), CountRG) // 后台权限接口 未完全开发
+webapp.use('/api/auth', user_auth_Router) // 登录注册 非权限接口
+webapp.use('/api/mail', user_mail_Router) // 获取验证码 非权限接口
 webapp.use('/api/data', get_data_Router) // get数据接口 非权限接口
 webapp.use('/api/public', user_public_Router) // 公共接口
 webapp.use('/api/public/uploads', express.static(config.path)) // 获取图片静态资源
+const get_archives_Router = require('./RouterFunction/Archives')
+webapp.use('/sitemap.xml', get_archives_Router.sitemapData) // 站点地图
 
 /* 路由模块 */
 
@@ -90,7 +116,7 @@ webapp.use((err, req, res, next) => {
   if (err instanceof Joi.ValidationError)
     return res.send({
       message: err.message,
-        status: 400,
+      status: 400,
     })
   if (err.name === 'UnauthorizedError')
     return res.status(401).send({

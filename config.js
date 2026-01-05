@@ -39,6 +39,13 @@ const config = {
   // 动态获取当前月份
   get pub_month() {
     return dayjs(new Date()).format('MM')
+  },// ✅ 动态获取当前 年-月-日 时:分:秒
+  get pub_datetime() {
+    return dayjs(new Date()).format('YYYY-MM-DD HH:mm:ss')
+  },
+  // 绝对时间戳
+  get pub_timestamp() {
+    return Date.now() // 毫秒级
   },
   // 其他方法和配置保持不变...
   generateMixed(n) {

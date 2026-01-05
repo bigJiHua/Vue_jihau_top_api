@@ -44,7 +44,10 @@ exports.article_archive = async (req, res) => {
   if (req.query.type === 'get') {
     if (!key) return res.cc('参数不全')
     const SelectYearMonthListSql = `SELECT title,article_id FROM ev_articles WHERE pub_date LIKE ? AND is_delete = 0 AND state = 0  limit 15`
-    const SelectYearMonthList = await ExecuteFuncData(SelectYearMonthListSql, key)
+    const SelectYearMonthList = await ExecuteFuncData(
+      SelectYearMonthListSql,
+      key,
+    )
     if (SelectYearMonthList.length === 0) return res.cc('参数有误')
     data = SelectYearMonthList
   }
@@ -59,33 +62,35 @@ exports.article_archive = async (req, res) => {
 // 获取通知列表
 exports.getNotifyList = async (req, res) => {
   // 查询通知 未删除且根据token的username不同来确保 whosee
-  const user = req.query.user
   const Num = Number(req.query.Num) >= 0 ? Number(req.query.Num) : 0
   // 获取最新10条
-  const SelectAllNotifySql = `select * from ev_notify where is_delete = 0 and whosee = 0`
+  const SelectAllNotifySql = `select 
+  title,notify_id,pub_date,read_num
+  from ev_notify where is_delete = 0 and whosee = 0`
   const SelectNotifySql = `SELECT title, notify_id, pub_date FROM ev_notify WHERE whosee = 0 AND state = 0 AND is_delete = 0 ORDER BY pub_date DESC LIMIT 20 offset ?`
   const SelectNotify = await ExecuteFuncData(SelectNotifySql, Num)
   const SelectAllNotify = await ExecuteFunc(SelectAllNotifySql)
   if (SelectNotify.length === 0) return res.cc('暂无通知', 409)
-  if (user) {
-    // 检查用户身份
-    const CheckUserSql = `select useridentity from ev_users where username =?`
-    const CheckUser = await ExecuteFuncData(CheckUserSql, user)
-    if (CheckUser.length !== 0 && CheckUser[0].useridentity === 'manager') {
-      // 获取所有能看的通知 包括管理员能看的
-      const SelectAllManagerNotifySql = `SELECT * from ev_notify where state = 0 AND is_delete = 0 ORDER BY pub_date DESC LIMIT 20 offset ?`
-      const SelectAllManagerNotify = await ExecuteFuncData(SelectAllManagerNotifySql, Num)
-      if (SelectAllManagerNotify.length === 0) return res.cc('暂无通知', 409)
-      return res.status(200).send({
-        message: '获取成功',
-        status: 200,
-        data: SelectAllManagerNotify,
-        ismessage: false,
-        Num: SelectAllNotify.length,
-      })
-    }
+  // 展示管理员通知
+  if (req.authData !== undefined && req.authData.useridentity === 'manager') {
+    // 获取所有能看的通知 包括管理员能看的
+    const SelectAllManagerNotifySql = `SELECT 
+    title,notify_id,pub_date,read_num
+    from ev_notify where state = 0 AND is_delete = 0 ORDER BY pub_date DESC LIMIT 20 offset ?`
+    const SelectAllManagerNotify = await ExecuteFuncData(
+      SelectAllManagerNotifySql,
+      Num,
+    )
+    if (SelectAllManagerNotify.length === 0) return res.cc('暂无通知', 409)
+    return res.status(200).send({
+      message: '获取成功',
+      status: 200,
+      data: SelectAllManagerNotify,
+      ismessage: false,
+      Num: SelectAllNotify.length,
+    })
   }
-  res.status(200).send({
+  return res.status(200).send({
     message: '获取成功',
     status: 200,
     data: SelectNotify,
@@ -116,7 +121,10 @@ exports.article_uget = async (req, res) => {
   const GetALlNum = await ExecuteFuncData(GetALlNumSql, user)
   let GetTheCurrentUsersArticles = []
   if (!isNaN(page)) {
-    GetTheCurrentUsersArticles = await ExecuteFuncData(GetTheCurrentUsersArticlesSql, [user, page])
+    GetTheCurrentUsersArticles = await ExecuteFuncData(
+      GetTheCurrentUsersArticlesSql,
+      [user, page],
+    )
     if (GetTheCurrentUsersArticles.length === 0)
       return res.send({
         message: '暂无更多数据！',
@@ -144,21 +152,38 @@ exports.article_uget = async (req, res) => {
 
 // 获取用户文章
 exports.article_get = async (req, res) => {
-  const UID = req.query.id
+  const AID = req.query.id
   const User = req.auth.username
   if (!User) return res.cc('错误！', 401)
   const data = { article: '' }
   // 查询文章是否删除 Query whether the article is deleted
   const QueryArticleIsDeleteSql = `select id,username,title,content,cover_img,lable,keyword,article_id,describes,state
     from ev_articles where article_id=? and username = ? and is_delete=0`
+  /* ================= 获取文章权限 ================= */
+  const QueryArticlePowerSql = `select 
+  article_id,username,user_id,
+  allow_comment,allow_comhis,allow_like,
+  allow_share,comment_review,is_clean_page
+  from ev_artpower where article_id = ? and username = ?`
   // 查询文章是否删除 Query whether the article is deleted
-  const QueryArticleIsDelete = await ExecuteFuncData(QueryArticleIsDeleteSql, [UID, User])
+  const QueryArticleIsDelete = await ExecuteFuncData(QueryArticleIsDeleteSql, [
+    AID,
+    User,
+  ])
+  const QueryArticlePower = await ExecuteFuncData(QueryArticlePowerSql, [
+    AID,
+    User,
+  ])
   if (QueryArticleIsDelete.length === 0) return res.cc('404 NOT FOUNT', 404)
+  if (QueryArticlePower.length === 0) {
+    console.log('初始化文章权限失败！')
+  }
   data.article = QueryArticleIsDelete[0]
+  data.power = QueryArticlePower[0]
   res.status(200).send({
     status: 200,
     message: '获取文章成功',
-    data: data,
+    data,
   })
 }
 
@@ -166,7 +191,10 @@ exports.article_get = async (req, res) => {
 const CheckArticleIDs = async (UID) => {
   // 查询是否有重复UID
   const CheckIfThereAreDuplicateUIDsSql = `SELECT * FROM ev_articles WHERE article_id = ?`
-  const CheckIfThereAreDuplicateUIDs = await ExecuteFuncData(CheckIfThereAreDuplicateUIDsSql, UID)
+  const CheckIfThereAreDuplicateUIDs = await ExecuteFuncData(
+    CheckIfThereAreDuplicateUIDsSql,
+    UID,
+  )
   return CheckIfThereAreDuplicateUIDs.length === 0 // 返回 true 如果没有重复 UID
 }
 // 发布文章
@@ -175,7 +203,8 @@ exports.article_put = async (req, res) => {
   const artIsMd = req.body.isMd === 'true'
   const message = req.body.state === '0' ? '发布文章成功' : '保存草稿成功！'
   put_data.username = req.auth.username
-  put_data.pub_date = put_data.pub_date !== '' ? put_data.pub_date : config.pub_date
+  put_data.pub_date =
+    put_data.pub_date !== '' ? put_data.pub_date : config.pub_date
   put_data.pub_month = config.pub_month
   let UID = ''
   // 根据文章是否是 Markdown 来设置 UID
@@ -198,7 +227,9 @@ exports.article_put = async (req, res) => {
       } else {
         UID = config.generateMixed(4)
       }
-      console.log(`Retrying UID generation: Attempt ${retries} - New UID: ${UID}`)
+      console.log(
+        `Retrying UID generation: Attempt ${retries} - New UID: ${UID}`,
+      )
     }
   }
   // 如果重试次数超过最大限制，返回错误
@@ -206,7 +237,8 @@ exports.article_put = async (req, res) => {
     return res.cc('生成唯一文章 ID 失败，请稍后重试')
   }
   put_data.article_id = UID // 将最终的 UID 赋值给文章数据
-  if (put_data.article_id === '') return res.cc('发布文章失败，请重新再试！', 500)
+  if (put_data.article_id === '')
+    return res.cc('发布文章失败，请重新再试！', 500)
   // 删除多余的数据字段
   delete put_data.isMd
   // 插入文章到数据库
@@ -234,7 +266,8 @@ exports.article_del = async (req, res) => {
   // 删除文章 delete article
   const DeleteArticleSql = `update ev_articles set is_delete=1 where id=? AND username = ?`
   const DeleteArticle = await ExecuteFuncData(DeleteArticleSql, [id, user])
-  if (DeleteArticle.affectedRows !== 1) return res.cc('删除文章失败，请重新再试')
+  if (DeleteArticle.affectedRows !== 1)
+    return res.cc('删除文章失败，请重新再试')
   res.send({
     status: 200,
     message: '删除成功!',
@@ -243,45 +276,133 @@ exports.article_del = async (req, res) => {
 
 // 更改文章
 exports.article_cag = async (req, res) => {
-  const username = req.body.username
-  const artid = req.body.article_id
+  const username = req.auth.username
+  const artid = req.body.id
+  const data = JSON.parse(req.body.data)
+  // 校验是不是修改内容的
+  const iscontent = Object.prototype.hasOwnProperty.call(data, 'content')
+  /* ================= 数据校验 ================= */
   // 查询文章ID是否合法 Check if the article ID is legal
-  const CheckIfTheArticleIDIsLegalSql = `select * from ev_articles where username=? and article_id=? and id = ?`
-  const CheckIfTheArticleIDIsLegal = await ExecuteFuncData(CheckIfTheArticleIDIsLegalSql, [
-    username,
-    artid,
-    req.body.id,
-  ])
+  if (artid === 'undefined' && !artid) return res.cc('非法ID，请检查重新再试！')
+  if (
+    (iscontent && typeof data.content !== 'string') ||
+    data?.content?.trim() === ''
+  ) {
+    return res.cc('文章内容不能为空！')
+  }
+  const hasValidField = (obj) =>
+    Object.values(obj).some((v) => v != null && v !== '')
+  // 拦截非法提交
+  if (!hasValidField(data)) {
+    return res.cc('提交内容有遗漏项，请检查后重新提交！', 403)
+  }
+  /* ================= 查存在 ================= */
+  const CheckIfTheArticleIDIsLegalSql = `select * from ev_articles where username=? and article_id=?`
+  const CheckIfTheArticleIDIsLegal = await ExecuteFuncData(
+    CheckIfTheArticleIDIsLegalSql,
+    [username, artid],
+  )
   if (CheckIfTheArticleIDIsLegal.length === 0)
-    return res.cc('非法用户或非法文章ID，请复制保存好您的文章数据再次提交修改', 404)
+    return res.cc(
+      '非法用户或非法文章ID，请复制保存好您的文章数据再次提交修改',
+      403,
+    )
+  /* ================= 校验是否重发 ================= */
+  const { state } = CheckIfTheArticleIDIsLegal[0]
+  if (Number(state) === 2) {
+    data.pub_date = config.pub_date
+    data.pub_month = config.pub_month
+    data.state = 0
+  } else if (Number(state) === 1) {
+    data.pub_date = config.pub_date
+    data.pub_month = config.pub_month
+    data.state = 0
+  }
+  /* ================= 执行数据 ================= */
   // 更新文章内容 Update article content
   const UpdateArticleContentSql = `update ev_articles set ? where username=? and article_id=?`
   const UpdateArticleContent = await ExecuteFuncData(UpdateArticleContentSql, [
-    req.body,
+    data,
     username,
     artid,
   ])
-  if (UpdateArticleContent.affectedRows !== 1) return res.cc('更新文章失败，请保存好数据重新提交')
-  res.status(200).send({
+  if (UpdateArticleContent.affectedRows === 0)
+    return res.cc('更新文章失败，请保存好数据重新提交')
+  /* ================= 更新数据权限的最后更新时间 ================= */
+  try {
+    if (iscontent) {
+      // 更新一下最后更新时间
+      const UpdateArticleTimeSql = `update ev_artpower set lastcag_at=? where username=? and article_id=?`
+      await ExecuteFuncData(UpdateArticleTimeSql, [
+        config.pub_timestamp,
+        username,
+        artid,
+      ])
+    }
+  } catch {
+    console.log('更新失败')
+  }
+  return res.status(200).send({
     status: 200,
     message: '文章更新成功',
+  })
+}
+
+// 更改文章权限
+exports.article_cagpower = async (req, res) => {
+  const username = req.auth.username
+  const artid = req.body.id
+  const data = JSON.parse(req.body.data)
+  /* ================= 数据校验 ================= */
+  // 查询文章ID是否合法 Check if the article ID is legal
+  const CheckIfTheArticleIDIsLegalSql = `select * from ev_articles where username=? and article_id=?`
+  const CheckIfTheArticleIDIsLegal = await ExecuteFuncData(
+    CheckIfTheArticleIDIsLegalSql,
+    [username, artid],
+  )
+  if (CheckIfTheArticleIDIsLegal.length === 0) return res.cc('非法文章ID!', 403)
+  // 查询文章权限是否合法 Check if the article Power is legal
+  const CheckIfTheArticlePowerIsLegalSql = `select * from ev_artpower where username=? and article_id=?`
+  const CheckIfTheArticlePowerIsLegal = await ExecuteFuncData(
+    CheckIfTheArticlePowerIsLegalSql,
+    [username, artid],
+  )
+  if (CheckIfTheArticlePowerIsLegal.length === 0)
+    return res.cc('权限初始失败！无法修改文章权限!', 404)
+  // 更新文章权限 Update article permissions
+  const UpdateArticlePermissionsSql = `update ev_artpower set ? where username=? and article_id=?`
+  const UpdateArticlePermissions = await ExecuteFuncData(
+    UpdateArticlePermissionsSql,
+    [data, username, artid],
+  )
+  if (UpdateArticlePermissions.affectedRows === 0)
+    return res.cc('更新文章权限失败，请保存好数据重新提交')
+  return res.status(200).send({
+    status: 200,
+    message: '文章权限更新成功',
   })
 }
 
 // 获取名下图库
 exports.article_image = async (req, res) => {
   const Num = Number(req.body.Num)
-  const username = req.body.picusername ? req.body.picusername : req.auth.username
+  const username = req.body.picusername
+    ? req.body.picusername
+    : req.auth.username
   if (username === 'undefined') return res.cc('用户名不能为undefined', 204)
   // 获取名下图库 get Gallery
-  const getGallerySql = 'select id from ev_userimage where username=? and state=0'
+  const getGallerySql =
+    'select id from ev_userimage where username=? and state=0'
   const getGalleryLimitSql = `SELECT * FROM ev_userimage 
 WHERE username=? AND state=0 
 ORDER BY id DESC 
 LIMIT 20 OFFSET ?
 `
   const getGallery = await ExecuteFuncData(getGallerySql, username)
-  let getGalleryLimit = await ExecuteFuncData(getGalleryLimitSql, [username, Num])
+  let getGalleryLimit = await ExecuteFuncData(getGalleryLimitSql, [
+    username,
+    Num,
+  ])
   if (getGallery.length === 0) return res.cc('空空如也')
   return res.status(200).send({
     status: 200,
@@ -302,7 +423,8 @@ exports.article_upimage = async (req, res) => {
   if (!/^image\/(jpeg|png|gif|bmp|webp|svg+xml|heic)$/.test(req.file.mimetype))
     return res.cc('不能上传非图片类的文件！', 206)
   // 自定义文件名
-  const FileName = config.generateUserId(18) + '.' + req.file.originalname.split('.').pop()
+  const FileName =
+    config.generateUserId(18) + '.' + req.file.originalname.split('.').pop()
   const type = req.file.originalname.split('.').pop()
   const FileNameWebp = FileName.replace('.' + type, '.webp')
   // 文件保存路径
@@ -338,7 +460,8 @@ exports.article_upimage = async (req, res) => {
           .toFile(config.path + FileNameWebp)
         const insertGallerySql = `insert into ev_userimage set ?`
         const insertGallery = await ExecuteFuncData(insertGallerySql, data)
-        if (insertGallery.affectedRows !== 1) return res.cc('存储失败，请重新再试', 406)
+        if (insertGallery.affectedRows !== 1)
+          return res.cc('存储失败，请重新再试', 406)
         return res.cc('文件接收成功', 200)
       }
     })
@@ -369,7 +492,9 @@ exports.article_imagedel = async (req, res) => {
       return res.cc('查询错误！', 406)
     }
     const filePath = `./public/${
-      String(QueryWhetherTheImageResourceExists[0].userimage).match(/(?<=\/public\/).*/)[0]
+      String(QueryWhetherTheImageResourceExists[0].userimage).match(
+        /(?<=\/public\/).*/,
+      )[0]
     }`
     const type = filePath.split('.').pop()
     const FileNameWebp = filePath.replace('.' + type, '.webp')
@@ -384,7 +509,10 @@ exports.article_imagedel = async (req, res) => {
         code: 406,
       })
     }
-    const DeleteImageResource = await ExecuteFuncData(DeleteImageResourceSql, id)
+    const DeleteImageResource = await ExecuteFuncData(
+      DeleteImageResourceSql,
+      id,
+    )
     if (DeleteImageResource.affectedRows !== 1) {
       return res.cc('执行失败', 406)
     }

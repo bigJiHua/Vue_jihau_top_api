@@ -20,6 +20,7 @@ exports.webSetting = {
     setting_value: joi.string().required(),
     value_type: joi.string().required(),
     description: joi.string().required(),
+    is_system: joi.string().required(),
   },
 }
 

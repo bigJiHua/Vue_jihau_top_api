@@ -23,7 +23,10 @@ exports.SelectData = async (req, res) => {
   }
   // 获取所有文章数目 做分页
   const GetALLArticlesAtATimeSql = `SELECT * FROM ${tableName}${stateCondition}`
-  const GetALLArticlesAtATime = await ExecuteFuncData(GetALLArticlesAtATimeSql, GetType)
+  const GetALLArticlesAtATime = await ExecuteFuncData(
+    GetALLArticlesAtATimeSql,
+    GetType,
+  )
   const totalCount = GetALLArticlesAtATime.length // 文章总数
 
   const currentPage = req.query.Num // 当前页码
@@ -31,7 +34,10 @@ exports.SelectData = async (req, res) => {
   const limit = Math.min(totalCount - offset, pageSize)
   // 每次只获取10条文章
   const GetOnly10ArticlesAtATimeSql = `SELECT * FROM ${tableName}${stateCondition} ORDER BY ${tableName}.id ASC LIMIT ${limit} OFFSET ${offset}`
-  const GetOnly10ArticlesAtATime = await ExecuteFuncData(GetOnly10ArticlesAtATimeSql, GetType)
+  const GetOnly10ArticlesAtATime = await ExecuteFuncData(
+    GetOnly10ArticlesAtATimeSql,
+    GetType,
+  )
   if (GetOnly10ArticlesAtATime.length === 0) {
     return res.send({
       status: 204,
@@ -128,18 +134,20 @@ exports.cagUPData = async (req, res) => {
       cagUserName,
       articleId,
     ])
-    if (deleteUserComments.affectedRows !== 1) return res.cc('删除失败/评论已被删除')
+    if (deleteUserComments.affectedRows !== 1)
+      return res.cc('删除失败/评论已被删除')
     res.cc('删除成功', 200)
   } else if (func === 'reject') {
     // 驳回文章 让作者文章进入作者回收站  ev_articles state 设置字段为0
     // 1. 检查是否正常状态
-    const CheckArticleStateIsOkSql = `SELECT * from ${tableName} where username =? AND ${tableId} =? AND state=0 AND is_delete = 0`
-    const CheckArticleStateIsOk = await ExecuteFuncData(CheckArticleStateIsOkSql, [
-      cagUserName,
-      articleId,
-    ])
+    const CheckArticleStateIsOkSql = `SELECT * from ${tableName} where username =? AND ${tableId} =? AND state = 0 AND is_delete = 0`
+    const CheckArticleStateIsOk = await ExecuteFuncData(
+      CheckArticleStateIsOkSql,
+      [cagUserName, articleId],
+    )
     // 等于空 就证明该文章已经删除或者已被驳回
-    if (CheckArticleStateIsOk.length === 0) return res.cc('文章已被驳回/删除 ！', 404)
+    if (CheckArticleStateIsOk.length === 0)
+      return res.cc('文章已被驳回/删除 ！', 404)
     // 1-1 进行驳回操作
     const UpdateArticleStateSql = `UPDATE ${tableName} SET state=1 where username=? AND  ${tableId} =? `
     const UpdateArticleState = await ExecuteFuncData(UpdateArticleStateSql, [
@@ -151,13 +159,14 @@ exports.cagUPData = async (req, res) => {
   } else if (func === 'restore') {
     // 恢复文章  ev_articles state 设置字段为0
     // 1. 检查是否正常状态
-    const CheckArticleStateIsOkSql = `SELECT * from ${tableName} where username =? AND  ${tableId} =?  AND state=1 AND is_delete = 0 `
-    const CheckArticleStateIsOk = await ExecuteFuncData(CheckArticleStateIsOkSql, [
-      cagUserName,
-      articleId,
-    ])
+    const CheckArticleStateIsOkSql = `SELECT * from ${tableName} where username =? AND  ${tableId} =? AND is_delete = 0 `
+    const CheckArticleStateIsOk = await ExecuteFuncData(
+      CheckArticleStateIsOkSql,
+      [cagUserName, articleId],
+    )
     // 等于空 就证明该文章已经删除或者已被驳回
-    if (CheckArticleStateIsOk.length === 0) return res.cc('文章正常/已被删除 ！', 404)
+    if (CheckArticleStateIsOk.length === 0)
+      return res.cc('文章正常/已被删除 ！', 404)
     // 1-1 进行驳回操作
     const UpdateArticleStateSql = `UPDATE ${tableName} SET state=0 where username=? AND ${tableId} =?`
     const UpdateArticleState = await ExecuteFuncData(UpdateArticleStateSql, [
@@ -170,10 +179,10 @@ exports.cagUPData = async (req, res) => {
     // 删除文章  ev_articles is_delete 设置字段为1
     // 1. 检查是否正常状态
     const CheckArticleStateIsOkSql = `SELECT * from ${tableName} where username =? AND ${tableId} =? AND is_delete = 0 `
-    const CheckArticleStateIsOk = await ExecuteFuncData(CheckArticleStateIsOkSql, [
-      cagUserName,
-      articleId,
-    ])
+    const CheckArticleStateIsOk = await ExecuteFuncData(
+      CheckArticleStateIsOkSql,
+      [cagUserName, articleId],
+    )
     // 等于空 就证明该文章已经删除或者已被驳回
     if (CheckArticleStateIsOk.length === 0) return res.cc('文章已被删除！', 404)
     // 1-1 进行驳回操作
@@ -219,8 +228,12 @@ exports.cagUAData = async (req, res) => {
   }
   // 第一步 根据收到的文章信息ID获取未改变的数据进行存档
   const SelectSourceDataSql = `select * from ${tableName} where ${tableId}=? AND username=? AND is_delete=0`
-  const SelectSourceData = await ExecuteFuncData(SelectSourceDataSql, [tablevalue, username])
-  if (SelectSourceData.length === 0) return res.cc('禁止修改已被删除的文章！', 404)
+  const SelectSourceData = await ExecuteFuncData(SelectSourceDataSql, [
+    tablevalue,
+    username,
+  ])
+  if (SelectSourceData.length === 0)
+    return res.cc('禁止修改已被删除的文章！', 404)
   // 备份源文章
   const stubData = JSON.stringify(SelectSourceData[0])
   const BackupData = {
@@ -234,7 +247,10 @@ exports.cagUAData = async (req, res) => {
   }
   // 第二步 检测是否被修改过
   const checkIsChangeSql = `select * from ev_cagarticlelog where article_id=? AND username=?`
-  const checkIsChange = await ExecuteFuncData(checkIsChangeSql, [tablevalue, username])
+  const checkIsChange = await ExecuteFuncData(checkIsChangeSql, [
+    tablevalue,
+    username,
+  ])
   if (checkIsChange.length !== 1) {
     // 未被写入过 进行写入 写入备份库 insert backup
     const insertBackupSql = `insert into ev_cagarticlelog set ?`
@@ -248,7 +264,8 @@ exports.cagUAData = async (req, res) => {
       tablevalue,
       username,
     ])
-    if (UpdateStubData.affectedRows === 0) return res.cc('操作错误！请重试', 404)
+    if (UpdateStubData.affectedRows === 0)
+      return res.cc('操作错误！请重试', 404)
   }
   // 增加修改次数
   const UpChangeNumSql = `UPDATE ev_cagarticlelog  SET change_num = change_num + 1  WHERE article_id =? AND username =? AND change_num<=30`
@@ -363,7 +380,10 @@ exports.postNotify = async (req, res) => {
   if (!postId) {
     // 查询是否有重复UID Check if there are duplicate UIDs
     const CheckIfThereAreDuplicateUIDsSql = `select * from ev_notify where notify_id=?`
-    const CheckIfThereAreDuplicateUIDs = await ExecuteFuncData(CheckIfThereAreDuplicateUIDsSql, UID)
+    const CheckIfThereAreDuplicateUIDs = await ExecuteFuncData(
+      CheckIfThereAreDuplicateUIDsSql,
+      UID,
+    )
     if (CheckIfThereAreDuplicateUIDs.length !== 0)
       return res.cc('UID重复!WARN! 备份好数据，请重新发布', 409)
     put_data.notify_id = UID
@@ -379,7 +399,8 @@ exports.postNotify = async (req, res) => {
     // 插入文章 Insert article
     const InsertArticleSql = `insert into ev_notify set ?`
     const InsertArticle = await ExecuteFuncData(InsertArticleSql, put_data)
-    if (InsertArticle.affectedRows !== 1) return res.cc('通知失败，请重新再试', 500)
+    if (InsertArticle.affectedRows !== 1)
+      return res.cc('通知失败，请重新再试', 500)
     res.status(200).send({
       status: 200,
       message: '发布通知成功!',
@@ -388,13 +409,22 @@ exports.postNotify = async (req, res) => {
   } else {
     // 检查是否 存在这个待发布的通知
     const CheckNotifyPostIDSql = `SELECT * from ev_notify where notify_id = ?`
-    const CheckNotifyPostID = await ExecuteFuncData(CheckNotifyPostIDSql, postId)
-    if (CheckNotifyPostID.length !== 1) return res.cc('无该通知/已删除，请去发布', 404)
-    if (CheckNotifyPostID[0].state === 0) return res.cc('公告已发布，请勿重新发布', 409)
+    const CheckNotifyPostID = await ExecuteFuncData(
+      CheckNotifyPostIDSql,
+      postId,
+    )
+    if (CheckNotifyPostID.length !== 1)
+      return res.cc('无该通知/已删除，请去发布', 404)
+    if (CheckNotifyPostID[0].state === 0)
+      return res.cc('公告已发布，请勿重新发布', 409)
     // 覆盖数据
     const ChangePostNtifyStateSql = `UPDATE ev_notify set ? where notify_id = ? AND is_delete = 0`
-    const ChangePostNtifyState = await ExecuteFuncData(ChangePostNtifyStateSql, [put_data, postId])
-    if (ChangePostNtifyState.affectedRows !== 1) return res.cc('操作失败！请暂存后重试', 201)
+    const ChangePostNtifyState = await ExecuteFuncData(
+      ChangePostNtifyStateSql,
+      [put_data, postId],
+    )
+    if (ChangePostNtifyState.affectedRows !== 1)
+      return res.cc('操作失败！请暂存后重试', 201)
     res.status(200).send({
       status: 200,
       message: '发布通知成功!',
@@ -442,13 +472,17 @@ exports.getOrCageRecycle = async (req, res) => {
       data: config.SelectContent(SelectData, 30),
     })
   } else if (action === 'recover') {
-    if (CheckResourceExists.length === 0) return res.cc('已恢复！请勿重复操作', 409)
+    if (CheckResourceExists.length === 0)
+      return res.cc('已恢复！请勿重复操作', 409)
     const recoverData = CheckResourceExists[0]
     recoverData.is_delete = 0
     recoverData.state = 1
     // 恢复
     const resoureRecoverSql = `UPDATE ${tableName} SET ? where ${tableId} = ?`
-    const resoureRecover = await ExecuteFuncData(resoureRecoverSql, [recoverData, cagid])
+    const resoureRecover = await ExecuteFuncData(resoureRecoverSql, [
+      recoverData,
+      cagid,
+    ])
     if (resoureRecover.affectedRows !== 1) return res.cc('操作失败', 404)
     res.status(200).send({
       message: '恢复成功至待发布状态，请重新编辑发布吧！',
@@ -466,7 +500,10 @@ exports.getOrCageRecycle = async (req, res) => {
     const deleteId = CheckResourceExists[0].id
     // 执行DELETE语句彻底删除文章
     const deletePageDataSql = `DELETE from ${tableName} where id = ? AND ${tableId} = ?`
-    const deletePageData = await ExecuteFuncData(deletePageDataSql, [deleteId, deleteDataId])
+    const deletePageData = await ExecuteFuncData(deletePageDataSql, [
+      deleteId,
+      deleteDataId,
+    ])
     if (deletePageData.affectedRows !== 1) return res.cc('删除失败', 404)
     res.status(200).send({
       message: '删除成功！',

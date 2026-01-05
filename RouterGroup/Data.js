@@ -12,8 +12,17 @@ const space_Router = require('../RouterFunction/SpaceData')
 const ArchiveRules = require('../Rules/Archives')
 const userinfoRules = require('../Rules/userinfo')
 /* 处理中间件 */
-const { CheckUserisTrue, verifyToken } = require('../Implement/middleware/CheckUserMiddleware')
-const ExecuteFuncData = require('../Implement/ExecuteFunctionData')
+const {
+  CheckUserisTrue,
+  verifyToken,
+} = require('../Implement/middleware/CheckUserMiddleware')
+const {
+  UpdateUserArticlePower,
+} = require('../Implement/middleware/UpdateSomeData')
+const {
+  CheckWebSiteAPIPort,
+} = require('../Implement/middleware/CheckWebsiteApiPort')
+// 获取非权限接口的权限信息
 router.use((req, res, next) => {
   verifyToken(req, res, next)
 })
@@ -23,12 +32,41 @@ router.get('/list', article_function.article_list) // 首页列表
 router.get('/archive', article_function.article_archive) // 文章归档
 router.get('/notify', article_function.getNotifyList) // 获取通知展示列表
 router.get('/Setting', getSetting_function.router_getSetting) // 首页设置信息
-router.get('/article', expressJoi(ArchiveRules.getArticleId), get_archives_Router.getArticle) // 请求获得文章数据
-router.get('/artdata', expressJoi(ArchiveRules.getArticleId), get_archives_Router.getArticleData) // 请求获得文章数据（评论 点赞等等...
-router.get('/page', expressJoi(ArchiveRules.getArticleId), get_archives_Router.getPage) // 请求获得通知数据
-router.get('/UpreadNum', expressJoi(ArchiveRules.getArticleId), get_archives_Router.UpdateReadNum) // 增加阅读数
+router.get(
+  '/article',
+  expressJoi(ArchiveRules.getArticleId),
+  async (req, res, next) => {
+    await UpdateUserArticlePower(req, res, next)
+  },
+  get_archives_Router.getArticle,
+) // 请求获得文章数据
+router.get(
+  '/artdata',
+  expressJoi(ArchiveRules.getArticleId),
+  get_archives_Router.getArticleData,
+) // 请求获得文章数据（点赞等等...
+router.get(
+  '/artcom',
+  expressJoi(ArchiveRules.getArticleId),
+  CheckWebSiteAPIPort('enable_comment'),
+  get_archives_Router.getArticleComment,
+) // 请求获得文章数据（评论
+router.get(
+  '/page',
+  expressJoi(ArchiveRules.getArticleId),
+  get_archives_Router.getPage,
+) // 请求获得通知数据
+router.get(
+  '/UpreadNum',
+  expressJoi(ArchiveRules.getArticleId),
+  get_archives_Router.UpdateReadNum,
+) // 增加阅读数
 router.get('/authData', expressJoi(userinfoRules.authData), userinfoRM.authData) // 获取作者信息
-router.get('/search', expressJoi(ArchiveRules.SearchKeyWorld), get_archives_Router.SearchApi) //搜索接口
+router.get(
+  '/search',
+  expressJoi(ArchiveRules.SearchKeyWorld),
+  get_archives_Router.SearchApi,
+) //搜索接口
 router.get(
   '/space',
   expressJoi(userinfoRules.userData),
@@ -36,7 +74,7 @@ router.get(
     await CheckUserisTrue(req, res, next, 'space')
   },
   userinfoRM.getSpaceData,
-) // 获取个人空间
+) // 获取个人空间个人信息
 router.get(
   '/spaceart',
   expressJoi(userinfoRules.authArticleData),
@@ -61,6 +99,7 @@ router.get(
   },
   space_Router.spaceLike,
 ) // 获取空间作者喜欢
+router.get('/spaceul', space_Router.spaceUserList)
 router.get(
   '/relation',
   expressJoi(userinfoRules.getRelationData),

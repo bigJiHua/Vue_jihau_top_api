@@ -21,12 +21,13 @@ router.get(
     if (page === 'sps') selectValue = 'spsport'
     const checkPowerSql = `Select * from website_settings where setting_key =? AND value_type = 'boolean'`
     const checkPower = await ExecuteFuncData(checkPowerSql, selectValue)
-    if (checkPower.length === 0) next()
+    // if (checkPower.length === 0) next()
     if (checkPower.length !== 0) {
       const isTrue = checkPower[0].setting_value === 'true'
       if (isTrue) next()
       else return res.cc('此功能已关闭！', 404)
     }
+    return 
   },
   User_Public.user_get_captcha,
 ) // 获取验证码
